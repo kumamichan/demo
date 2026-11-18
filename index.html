@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ひとりサロン経営アプリ｜デモ一覧</title>
+<link rel="stylesheet" href="common/app.css">
+<style>
+.hero{padding:36px 0 18px}
+.hero .kicker{display:inline-block;font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:4px 12px;border-radius:999px}
+.hero h1{font-size:28px;line-height:1.35;margin:12px 0 8px;letter-spacing:.01em}
+.hero p{margin:0;color:var(--text-2);font-size:14.5px;max-width:620px}
+.salon{display:grid;grid-template-columns:1fr;gap:12px;align-items:center}
+@media(min-width:680px){.salon{grid-template-columns:1.1fr 1fr}}
+.salon h2{font-size:17px;margin:2px 0 4px}
+.salon .tag{font-size:11.5px;color:var(--muted)}
+.salon .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.salon .stats div{background:var(--surface-2);border-radius:12px;padding:10px 12px}
+.salon .stats b{display:block;font-size:18px;font-variant-numeric:tabular-nums}
+.salon .stats span{font-size:11.5px;color:var(--text-2)}
+.flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:6px;margin:6px 0 2px}
+.flow .st{flex:1 1 110px;background:var(--surface-2);border-radius:12px;padding:10px;text-align:center;font-size:12px;color:var(--text-2)}
+.flow .st b{display:block;font-size:13.5px;color:var(--text)}
+.flow .ar{align-self:center;color:var(--muted);font-weight:700}
+@media(max-width:560px){.flow .ar{display:none}.flow .st{flex:1 1 40%}}
+.apps{display:grid;grid-template-columns:1fr;gap:12px;margin-top:12px}
+@media(min-width:680px){.apps{grid-template-columns:1fr 1fr}}
+.app{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.app .top{display:flex;align-items:center;gap:10px}
+.app .ic{width:44px;height:44px;border-radius:12px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:22px;flex:none}
+.app .no{font-size:11px;color:var(--muted);font-weight:700}
+.app h3{margin:0;font-size:16px}
+.app .pain{font-size:13px;color:var(--text-2);margin:0}
+.app .pain::before{content:"お悩み：";font-weight:700;color:var(--accent)}
+.app ul{margin:0;padding-left:18px;font-size:13px}
+.app ul li{margin:2px 0}
+.app .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto;padding-top:4px}
+.app .acts a{flex:1;text-align:center;text-decoration:none;border-radius:10px;padding:11px 12px;font-weight:700;font-size:14px;background:var(--accent);color:var(--accent-ink)}
+.app .acts a.sec{background:var(--surface-2);color:var(--text)}
+.soon{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.soon div{border:1.5px dashed var(--border);border-radius:14px;padding:12px 14px;font-size:13px;color:var(--text-2)}
+.soon b{display:block;color:var(--text);font-size:14px}
+.soon small{display:inline-block;margin-top:6px;font-size:11px;font-weight:700;color:var(--muted);background:var(--surface-2);padding:2px 8px;border-radius:999px}
+.howto{display:grid;grid-template-columns:1fr;gap:8px;font-size:13.5px}
+@media(min-width:680px){.howto{grid-template-columns:repeat(3,1fr)}}
+.howto div{background:var(--surface-2);border-radius:12px;padding:12px}
+.howto b{display:block;margin-bottom:2px}
+.sec-title{font-size:18px;margin:30px 0 4px}
+.sec-lead{font-size:13px;color:var(--text-2);margin:0 0 6px}
+footer{margin-top:28px;font-size:12px;color:var(--muted);text-align:center}
+.resetall{background:none;border:1px solid var(--border);border-radius:999px;padding:6px 14px;font-size:12px;color:var(--text-2);cursor:pointer;margin-top:8px}
+</style>
+</head>
+<body>
+<script src="common/lumi-data.js"></script>
+<div class="wrap">
+  <section class="hero">
+    <span class="kicker">代理店さま向けデモ</span>
+    <h1>ひとりサロンの「予約」から「利益」まで、<br>つながる6つの経営アプリ</h1>
+    <p>オーナーひとりで施術も経営もこなすサロンのために作ったアプリです。入力は1日1分。数字を見て「次に何をすればいいか」がわかります。下のデモは、すべて同じ架空サロンのデータでつながっています。</p>
+  </section>
+
+  <div class="card">
+    <div class="salon">
+      <div>
+        <span class="tag">デモの架空サロン</span>
+        <h2 id="sName"></h2>
+        <p class="hint" id="sDesc" style="margin:0"></p>
+      </div>
+      <div class="stats" id="sStats"></div>
+    </div>
+  </div>
+
+  <h2 class="sec-title">アプリのつながり</h2>
+  <p class="sec-lead">予約が入れば、売上・予測・原価まで自動でつながります。同じ数字を2回入れる必要はありません。</p>
+  <div class="flow">
+    <div class="st"><b>📣 SNS投稿</b>集客する</div><span class="ar">›</span>
+    <div class="st"><b>📅 予約管理</b>来店が入る</div><span class="ar">›</span>
+    <div class="st"><b>📊 KPI管理</b>結果を見る</div><span class="ar">›</span>
+    <div class="st"><b>📈 売上予測</b>先を読む</div><span class="ar">›</span>
+    <div class="st"><b>💴 原価管理</b>利益を知る</div><span class="ar">›</span>
+    <div class="st"><b>📦 在庫・発注</b>ムダを減らす</div>
+  </div>
+
+  <h2 class="sec-title">デモを開く</h2>
+  <p class="sec-lead">各アプリの上にある「💡 使い方」に、3分で説明できる見せ方の順番が入っています。</p>
+  <div class="apps">
+    <div class="app">
+      <div class="top"><span class="ic">📅</span><div><span class="no">01</span><h3>予約管理</h3></div></div>
+      <p class="pain">施術中は電話に出られず、予約の取りこぼしや管理の手間が多い</p>
+      <ul><li>お客様が24時間WEBで予約、サロン側の台帳に即反映</li><li>顧客カルテ・来店履歴・クーポンの出し分け</li><li>予約が入るとメールでお知らせ</li></ul>
+      <div class="acts"><a href="yoyaku/admin.html">サロン側の画面</a><a class="sec" href="yoyaku/index.html">お客様側の予約画面</a></div>
+    </div>
+    <div class="app">
+      <div class="top"><span class="ic">📊</span><div><span class="no">02</span><h3>KPI管理</h3></div></div>
+      <p class="pain">月末にならないと、今月うまくいっているのかわからない</p>
+      <ul><li>売上・客数・メニュー人数を1分で日報入力</li><li>客単価・新規比率・カラー率などを自動でグラフ化</li><li>目標の達成率と月末の着地をメールでお知らせ</li></ul>
+      <div class="acts"><a href="kpi/index.html">デモを開く</a></div>
+    </div>
+    <div class="app">
+      <div class="top"><span class="ic">📈</span><div><span class="no">03</span><h3>売上予測</h3></div></div>
+      <p class="pain">目標に届かないとわかったときには、もう打つ手がない</p>
+      <ul><li>実績＋予約＋見込みから、今日の時点で月末の着地を予測</li><li>足りない分を「あと何人」「単価いくら」で表示</li><li>単価アップ・空き枠埋めのシミュレーション</li></ul>
+      <div class="acts"><a href="forecast/index.html">デモを開く</a></div>
+    </div>
+    <div class="app">
+      <div class="top"><span class="ic">💴</span><div><span class="no">04</span><h3>原価管理</h3></div></div>
+      <p class="pain">売上はあるのに、どのメニューが本当にもうかっているかわからない</p>
+      <ul><li>メニューごとの材料費と原価率</li><li>ひとりサロン向けの「1時間あたりの利益」ランキング</li><li>損益分岐点と、値上げ・固定費見直しの試算</li></ul>
+      <div class="acts"><a href="cost/index.html">デモを開く</a></div>
+    </div>
+    <div class="app">
+      <div class="top"><span class="ic">📦</span><div><span class="no">05</span><h3>在庫・発注管理</h3></div></div>
+      <p class="pain">薬剤が急に切れる、逆に使い切れない在庫が棚に眠っている</p>
+      <ul><li>残りの量と「あと何日分」を自動表示、発注点でお知らせ</li><li>足りない商品をまとめてカートへ、発注文を自動作成</li><li>月ごとの仕入れ額と材料費率</li></ul>
+      <div class="acts"><a href="stock/index.html">デモを開く</a></div>
+    </div>
+    <div class="app">
+      <div class="top"><span class="ic">📣</span><div><span class="no">06</span><h3>SNS投稿管理</h3></div></div>
+      <p class="pain">インスタを更新したいけれど、文章を考える時間がない</p>
+      <ul><li>施術写真を選ぶだけで、投稿画像の文字入れまで自動</li><li>キャプション・ハッシュタグもまとめて作成</li><li>「メニュー紹介」「お悩み解決」の2パターン</li></ul>
+      <div class="acts"><a href="sns/index.html">デモを開く</a></div>
+    </div>
+  </div>
+
+  <h2 class="sec-title">今後追加予定</h2>
+  <div class="soon">
+    <div><b>🎯 企画測定</b>キャンペーンや新メニューの効果を数字で検証<br><small>近日公開</small></div>
+    <div><b>⏱ 稼働率分析</b>曜日・時間帯ごとの埋まり具合と空き時間の活かし方<br><small>近日公開</small></div>
+    <div><b>🔁 再来・失客分析</b>来なくなりそうなお客様を早めに見つけてフォロー<br><small>近日公開</small></div>
+  </div>
+
+  <h2 class="sec-title">代理店さまへ：デモの使い方</h2>
+  <div class="howto">
+    <div><b>💡 使い方ボタン</b>各アプリの上にあります。お悩み→操作の順番が3〜5ステップでまとまっています。</div>
+    <div><b>↺ 戻すボタン</b>入力した内容を消して、最初の状態に戻せます。何度でも同じ説明ができます。</div>
+    <div><b>数字はすべて連動</b>どのアプリも同じ架空サロンのデータです。「予約のこの数字が、ここに出る」と見せられます。</div>
+  </div>
+
+  <footer>
+    デモの数字はすべて架空のサロン「hair salon Lumi」のものです。入力した内容はこの端末の中だけに保存され、外部には送信されません。<br>
+    <button class="resetall" id="resetAll">すべてのデモを最初の状態に戻す</button>
+  </footer>
+</div>
+<script>
+(function(){
+  const L = window.LUMI, U = L.util;
+  const fmt = n => Math.round(n).toLocaleString("ja-JP");
+  const last = U.addMonths(L.TODAY, -1).slice(0,7);
+  const vs = L.visits.filter(v => v.date.slice(0,7) === last);
+  const sales = vs.reduce((a,v)=>a+v.price+v.prodSales,0);
+  document.getElementById("sName").textContent = L.salon.name + "（" + L.salon.kana + "）";
+  document.getElementById("sDesc").textContent = `${L.salon.concept}。オーナー ${L.salon.owner}・セット面${L.salon.seats}席・${L.salon.open}〜${L.salon.close}・火曜定休。`;
+  document.getElementById("sStats").innerHTML = [
+    ["先月の売上", "¥" + fmt(sales)], ["先月の客数", vs.length + "人"],
+    ["客単価", "¥" + fmt(sales / vs.length)], ["月の目標", "¥" + fmt(L.targetFor(last).sales)]
+  ].map(([t,v]) => `<div><span>${t}</span><b>${v}</b></div>`).join("");
+  document.getElementById("resetAll").onclick = () => {
+    try { Object.keys(localStorage).filter(k => k.indexOf("lumi.") === 0).forEach(k => localStorage.removeItem(k)); sessionStorage.clear(); } catch (e) {}
+    document.getElementById("resetAll").textContent = "✓ すべてのデモを最初の状態に戻しました";
+  };
+})();
+</script>
+</body>
+</html>

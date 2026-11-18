@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>売上予測｜hair salon Lumi（デモ）</title>
+<link rel="stylesheet" href="../common/app.css">
+<style>
+.hero{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:680px){.hero{grid-template-columns:1.25fr 1fr}}
+.big{font-size:32px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.01em;line-height:1.15}
+.range{font-size:12.5px;color:var(--text-2);margin-top:2px}
+.gap-box{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.gap-box div{background:var(--surface-2);border-radius:12px;padding:10px 12px}
+.gap-box b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.gap-box span{font-size:11.5px;color:var(--text-2)}
+.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.day{background:var(--surface-2);border-radius:10px;padding:8px 6px;text-align:center;font-size:11.5px;line-height:1.35}
+.day .dd{font-weight:700;font-size:13px}
+.day .fr{font-variant-numeric:tabular-nums}
+.day.free{background:var(--warn-bg);color:var(--warn-ink)}
+.day.off{opacity:.5}
+.day .bar{height:5px;background:var(--surface);border-radius:999px;margin:5px 2px 3px;overflow:hidden}
+.day .bar i{display:block;height:100%;background:var(--s1)}
+.sim-out{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.sim-out div{background:var(--surface-2);border-radius:12px;padding:10px 12px}
+.sim-out b{display:block;font-size:19px;font-variant-numeric:tabular-nums}
+.sim-out span{font-size:11.5px;color:var(--text-2)}
+</style>
+</head>
+<body>
+<script src="../common/lumi-data.js"></script>
+<script>
+window.DEMO = {
+  id: "forecast", app: "売上予測",
+  pain: "月末にならないと今月の売上がわからない。目標に届かないとわかったときには、もう打つ手がない。",
+  steps: [
+    { t: "いちばん上の「月末の着地予測」を見る", d: "実績＋入っている予約＋これから入りそうな予約から、今日の時点で月末の売上を予測します。" },
+    { t: "「目標まで」の2つの数字を見る", d: "足りない分を「あと何人」「単価をいくら上げれば」の2通りで表示。打ち手がすぐ決まります。" },
+    { t: "「これから7日間の空き」を見る", d: "空きが多い日は黄色。SNS投稿やLINE配信で埋めにいく日がひと目でわかります。" },
+    { t: "シミュレーションのつまみを動かす", d: "「単価を+500円」「週に2人増やす」など、動かすと着地と1年間の効果がその場で変わります。" },
+    { t: "来月・再来月の見込みを見る", d: "お客様の来店周期から、まだ予約していない再来予定の人数まで予測します。" }
+  ]
+};
+</script>
+<script src="../common/demo-kit.js"></script>
+
+<div class="wrap">
+  <div class="apphead">
+    <h1>売上予測</h1>
+    <p id="asof"></p>
+  </div>
+
+  <div class="hero">
+    <div class="card" style="margin-bottom:0">
+      <h2 id="mTitle">今月の着地予測</h2>
+      <div class="big" id="landing">—</div>
+      <div class="range" id="range"></div>
+      <div style="margin:12px 0 6px"><span class="badge" id="verdict"></span></div>
+      <div class="stack" id="stack" aria-hidden="true"></div>
+      <div class="legend" id="stackLg"></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <h2>目標まで</h2>
+      <p class="lead" id="gapLead"></p>
+      <div class="gap-box">
+        <div><span>あと来店してほしい人数</span><b id="gapPeople">—</b><span id="gapPeopleSub"></span></div>
+        <div><span>または客単価を</span><b id="gapUnit">—</b><span id="gapUnitSub"></span></div>
+      </div>
+      <p class="hint" style="margin:10px 0 0" id="capNote"></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>日別の売上（実績・予約済み・見込み）</h2>
+    <div class="legend" id="lgDaily"></div>
+    <div class="cv"><canvas id="chDaily"></canvas></div>
+  </div>
+
+  <div class="card">
+    <h2>累計売上と目標ペース</h2>
+    <div class="legend" id="lgCum"></div>
+    <div class="cv"><canvas id="chCum"></canvas></div>
+  </div>
+
+  <div class="card">
+    <h2>これから7日間の空き</h2>
+    <p class="lead">黄色の日は空き時間が4時間以上あります。SNS投稿やLINE配信で埋めにいきましょう。</p>
+    <div class="days" id="days"></div>
+  </div>
+
+  <div class="card">
+    <h2>シミュレーション：こうしたら、いくら変わる？</h2>
+    <p class="lead">つまみを動かすと、今月の着地と1年間の効果がその場で変わります。</p>
+    <div class="slider"><div class="sh"><span>客単価を上げる</span><b id="vUnit">+¥0</b></div><input type="range" id="sUnit" min="0" max="2000" step="100" value="0"><small>例：トリートメントを3人に1人追加すると、客単価は約+1,100円</small></div>
+    <div class="slider"><div class="sh"><span>空き枠を埋めて来店を増やす</span><b id="vAdd">週+0人</b></div><input type="range" id="sAdd" min="0" max="6" step="1" value="0"><small>例：空きの多い日にLINEで「当日予約OK」を配信</small></div>
+    <div class="slider"><div class="sh"><span>店販を増やす</span><b id="vProd">1日+0個</b></div><input type="range" id="sProd" min="0" max="3" step="1" value="0"><small>平均単価 <span id="prodAvg"></span> の商品で計算</small></div>
+    <div class="sim-out">
+      <div><span>今月の着地</span><b id="simLanding">—</b><span id="simDiff"></span></div>
+      <div><span>1年間続けた場合の効果</span><b id="simYear">—</b><span>月に約 <span id="simMonth"></span></span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>来月・再来月の見込み</h2>
+    <p class="lead">お客様ひとりひとりの来店周期から、まだ予約していない「そろそろ来る人」も数えて予測します。</p>
+    <div class="tbl"><table id="tblNext"></table></div>
+    <div class="insight" id="nextInsight"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script>
+(function(){
+"use strict";
+const L = window.LUMI, U = L.util, T = L.TODAY;
+const $ = id => document.getElementById(id);
+const fmt = n => Math.round(n).toLocaleString("ja-JP");
+const yen = n => "¥" + fmt(n);
+const man = n => (n/10000).toLocaleString("ja-JP",{maximumFractionDigits:1}) + "万円";
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const WD = "日月火水木金土";
+const DAY_MIN = L.CLOSE_MIN - L.OPEN_MIN;
+
+const mStart = U.monthStart(T), mEnd = U.monthEnd(T), month = T.slice(0,7);
+const target = L.targetFor(month);
+$("asof").textContent = `${+T.slice(5,7)}月${+T.slice(8)}日（${WD[U.dow(T)]}）時点の予測｜${L.salon.name}`;
+$("mTitle").textContent = `${+month.slice(5)}月の着地予測`;
+
+/* ---------- 過去の傾向 ---------- */
+const hist = L.visits.filter(v => v.date >= U.addDays(T, -56));
+const histDays = {}; hist.forEach(v => { histDays[v.date] = (histDays[v.date] || 0) + 1; });
+const perWd = [0,0,0,0,0,0,0].map((_, wd) => {
+  let n = 0, c = 0, d = U.addDays(T, -56);
+  while (d < T) { if (U.dow(d)===wd && L.isBusinessDay(d)) { n++; c += histDays[d] || 0; } d = U.addDays(d,1); }
+  return n ? c/n : 0;
+});
+const last60 = L.visits.filter(v => v.date >= U.addDays(T, -60));
+const avgTicket = last60.reduce((a,v)=>a+v.price+v.prodSales,0) / last60.length;
+const avgProd = last60.reduce((a,v)=>a+v.prodSales,0) / last60.length;
+const avgDur = last60.reduce((a,v)=>a+v.dur,0) / last60.length;
+const prodItems = L.products; const prodAvgPrice = prodItems.reduce((a,p)=>a+p.price,0)/prodItems.length;
+
+/* ---------- 今月の予測 ---------- */
+const days = [];
+for (let d = mStart; d <= mEnd; d = U.addDays(d,1)) days.push(d);
+const daily = days.map(d => {
+  const open = L.isBusinessDay(d);
+  if (d < T){
+    const vs = L.visits.filter(v => v.date===d);
+    return { d, open, actual: vs.reduce((a,v)=>a+v.price+v.prodSales,0), booked:0, extra:0, n: vs.length, bn:0, en:0, bookedMin:0 };
+  }
+  const bs = L.bookings.filter(b => b.date===d && b.status!=="cancelled");
+  const bookedMin = bs.reduce((a,b)=>a+b.dur,0);
+  const freeN = Math.max(0, Math.floor((DAY_MIN - bookedMin) / avgDur));
+  const en = open ? Math.min(freeN, Math.max(0, perWd[U.dow(d)] - bs.length)) : 0;
+  return { d, open, actual:0, booked: bs.reduce((a,b)=>a+b.price,0) + bs.length*avgProd, extra: en*avgTicket, n:0, bn:bs.length, en, bookedMin };
+});
+const sum = k => daily.reduce((a,x)=>a+x[k],0);
+const actual = sum("actual"), booked = sum("booked"), extra = sum("extra");
+const landing = actual + booked + extra;
+const low = actual + booked + extra*0.7, high = actual + booked + extra*1.2;
+const remainDays = daily.filter(x => x.d >= T && x.open).length;
+const expVisits = sum("n") + sum("bn") + sum("en");
+
+function renderTop(){
+  $("landing").textContent = yen(landing);
+  $("range").textContent = `予測の幅：${yen(low)} 〜 ${yen(high)}｜目標 ${yen(target.sales)}`;
+  const ok = landing >= target.sales;
+  $("verdict").className = "badge " + (ok ? "ok" : low >= target.sales*0.95 ? "warn" : "ng");
+  $("verdict").textContent = ok ? `✅ 目標達成の見込み（+${yen(landing-target.sales)}）` : `⚠️ 目標まであと ${yen(target.sales-landing)}`;
+  const max = Math.max(high, target.sales) * 1.02;
+  $("stack").innerHTML = `<span style="width:${actual/max*100}%;background:${css("--s1")}"></span><span style="width:${booked/max*100}%;background:${css("--s3")}"></span><span style="width:${extra/max*100}%;background:${css("--muted")}"></span><b class="tgt" style="left:${target.sales/max*100}%"></b>`;
+  $("stackLg").innerHTML = `<span><i style="background:${css("--s1")}"></i>実績 ${man(actual)}</span><span><i style="background:${css("--s3")}"></i>予約済み ${man(booked)}</span><span><i style="background:${css("--muted")}"></i>これから入る見込み ${man(extra)}</span><span><i class="line"></i>目標</span>`;
+  const gap = target.sales - landing;
+  const freeMin = daily.filter(x => x.d >= T && x.open).reduce((a,x)=>a + Math.max(0, DAY_MIN - x.bookedMin - x.en*avgDur), 0);
+  if (gap > 0){
+    $("gapLead").textContent = `今のペースだと ${yen(gap)} 足りません。どちらかを達成すれば届きます。`;
+    $("gapPeople").textContent = `あと ${Math.ceil(gap/avgTicket)} 人`;
+    $("gapPeopleSub").textContent = `平均客単価 ${yen(avgTicket)} で計算`;
+    $("gapUnit").textContent = `+${yen(Math.ceil(gap/expVisits/10)*10)}`;
+    $("gapUnitSub").textContent = `今月の来店見込み ${Math.round(expVisits)} 人全員で`;
+  } else {
+    $("gapLead").textContent = `目標を ${yen(-gap)} 上回る見込みです。さらに伸ばすなら：`;
+    $("gapPeople").textContent = `+${Math.round(freeMin/avgDur)} 人`;
+    $("gapPeopleSub").textContent = "空き時間を埋めた場合の上限";
+    $("gapUnit").textContent = `+${yen(Math.round(avgTicket*0.05/10)*10)}`;
+    $("gapUnitSub").textContent = "単価5%アップで";
+  }
+  $("capNote").textContent = `残り営業日 ${remainDays} 日・空き時間 約 ${Math.round(freeMin/60)} 時間（予約と見込みを除く）`;
+}
+
+/* ---------- グラフ ---------- */
+const charts = {};
+function mk(id, cfg){ if (charts[id]) charts[id].destroy(); if (window.Chart) charts[id] = new Chart($(id), cfg); }
+function baseOpts(){
+  return { responsive:true, maintainAspectRatio:false, animation:{duration:250}, interaction:{mode:"index",intersect:false},
+    plugins:{ legend:{display:false}, tooltip:{ backgroundColor:css("--text"), titleColor:css("--bg"), bodyColor:css("--bg"), footerColor:css("--bg"), padding:10, cornerRadius:8,
+      callbacks:{ label:c => c.parsed.y==null ? null : " "+c.dataset.label+"："+yen(c.parsed.y) } } },
+    scales:{ x:{ grid:{display:false}, ticks:{ color:css("--text-2"), font:{size:10}, maxRotation:0, autoSkipPadding:6 } },
+      y:{ beginAtZero:true, grid:{color:css("--grid")}, border:{display:false}, ticks:{ color:css("--text-2"), font:{size:10}, maxTicksLimit:5, callback:v => v>=10000 ? (v/10000)+"万" : v } } } };
+}
+function renderCharts(){
+  const labels = days.map(d => +d.slice(8));
+  const bar = (label, data, color, top) => ({ type:"bar", label, data, backgroundColor:color, borderColor:css("--surface"), borderWidth:{top:2}, borderRadius: top?{topLeft:4,topRight:4}:0, borderSkipped:"start", stack:"s", maxBarThickness:22, order:2 });
+  const dTarget = target.sales / target.days;
+  const o = baseOpts(); o.scales.x.stacked = true; o.scales.y.stacked = true;
+  o.plugins.tooltip.callbacks.title = it => { const d = days[it[0].dataIndex]; return `${+d.slice(5,7)}/${+d.slice(8)}（${WD[U.dow(d)]}）${L.isBusinessDay(d)?"":"休み"}`; };
+  mk("chDaily", { type:"bar", data:{ labels, datasets:[
+    bar("実績", daily.map(x => x.actual || null), css("--s1"), true),
+    bar("予約済み", daily.map(x => x.booked || null), css("--s3"), false),
+    bar("見込み", daily.map(x => x.extra || null), css("--muted"), true),
+    { type:"line", label:"1日あたり目標", data: days.map(d => L.isBusinessDay(d) ? dTarget : null), borderColor:css("--target"), borderDash:[5,4], borderWidth:2, pointRadius:0, spanGaps:false, order:1 }
+  ]}, options:o });
+  $("lgDaily").innerHTML = `<span><i style="background:${css("--s1")}"></i>実績</span><span><i style="background:${css("--s3")}"></i>予約済み</span><span><i style="background:${css("--muted")}"></i>見込み</span><span><i class="line"></i>1日あたり目標</span>`;
+
+  let cum = 0, tc = 0; const bizTotal = target.days;
+  const cumAct = [], cumProj = [], cumTgt = [];
+  daily.forEach(x => {
+    cum += x.actual + x.booked + x.extra;
+    if (x.open) tc += target.sales / bizTotal;
+    cumTgt.push(Math.round(tc));
+    if (x.d < T){ cumAct.push(cum); cumProj.push(null); } else { cumAct.push(null); cumProj.push(Math.round(cum)); }
+  });
+  const ti = daily.findIndex(x => x.d >= T); if (ti > 0) cumProj[ti-1] = cumAct[ti-1];
+  const oc = baseOpts();
+  mk("chCum", { type:"line", data:{ labels, datasets:[
+    { label:"実績の累計", data:cumAct, borderColor:css("--s1"), backgroundColor:css("--s1"), borderWidth:2, pointRadius:0, pointHoverRadius:4 },
+    { label:"予測の累計", data:cumProj, borderColor:css("--s1"), borderDash:[2,3], borderWidth:2, pointRadius:0, pointHoverRadius:4 },
+    { label:"目標ペース", data:cumTgt, borderColor:css("--target"), borderDash:[6,4], borderWidth:2, pointRadius:0, pointHoverRadius:4 }
+  ]}, options:oc });
+  $("lgCum").innerHTML = `<span><i style="background:${css("--s1")}"></i>実績の累計</span><span><i style="height:0;border-top:2px dotted ${css("--s1")};width:14px;border-radius:0"></i>予測の累計</span><span><i class="line"></i>目標ペース</span>`;
+}
+
+/* ---------- 7日間の空き ---------- */
+function renderDays(){
+  const out = [];
+  for (let i=0;i<7;i++){
+    const d = U.addDays(T,i), open = L.isBusinessDay(d);
+    const bs = L.bookings.filter(b => b.date===d);
+    const bm = bs.reduce((a,b)=>a+b.dur,0), free = Math.max(0, DAY_MIN - bm);
+    out.push(`<div class="day ${!open?"off":free>=240?"free":""}"><div>${i===0?"今日":WD[U.dow(d)]}</div><div class="dd">${+d.slice(5,7)}/${+d.slice(8)}</div>
+      ${open ? `<div class="bar"><i style="width:${Math.min(100,bm/DAY_MIN*100)}%"></i></div><div>予約${bs.length}件</div><div class="fr">空き${(free/60).toFixed(1)}h</div>` : `<div style="margin-top:8px">休み</div>`}</div>`);
+  }
+  $("days").innerHTML = out.join("");
+}
+
+/* ---------- シミュレーション ---------- */
+function renderSim(){
+  const up = +$("sUnit").value, add = +$("sAdd").value, prod = +$("sProd").value;
+  $("vUnit").textContent = "+" + yen(up); $("vAdd").textContent = "週+" + add + "人"; $("vProd").textContent = "1日+" + prod + "個";
+  $("prodAvg").textContent = yen(prodAvgPrice);
+  const weeksLeft = remainDays / 5.6;
+  const remainVisits = sum("bn") + sum("en") + add*weeksLeft;
+  const effMonth = remainVisits*up + add*weeksLeft*avgTicket + prod*remainDays*prodAvgPrice;
+  const sim = landing + effMonth;
+  $("simLanding").textContent = yen(sim);
+  $("simDiff").textContent = effMonth ? `今の予測より +${yen(effMonth)}${sim>=target.sales && landing<target.sales ? "・目標達成！" : ""}` : "つまみを動かしてください";
+  const full = target.days, monthVisits = expVisits;
+  const perMonth = monthVisits*up + add*(full/5.6)*(avgTicket+up) + prod*full*prodAvgPrice;
+  $("simYear").textContent = "+" + yen(perMonth*12);
+  $("simMonth").textContent = "+" + yen(perMonth);
+}
+["sUnit","sAdd","sProd"].forEach(id => $(id).addEventListener("input", renderSim));
+
+/* ---------- 来月・再来月 ---------- */
+function renderNext(){
+  const bookedBy = {}; L.bookings.forEach(b => { if (!bookedBy[b.customerId] || b.date > bookedBy[b.customerId]) bookedBy[b.customerId] = b.date; });
+  const last3 = [1,2,3].map(i => U.addMonths(T,-i).slice(0,7));
+  const newPerMonth = L.visits.filter(v => v.isNew && last3.includes(v.date.slice(0,7))).length / 3;
+  const rows = [0,1,2].map(i => {
+    const ms = U.addMonths(T,i), me = U.monthEnd(ms), mo = ms.slice(0,7), from = i===0 ? T : ms;
+    const bs = L.bookings.filter(b => b.date >= from && b.date <= me);
+    let due = 0, dueNotBooked = 0;
+    L.customers.forEach(c => {
+      if (c.status==="失客" || !c.lastVisit) return;
+      const p = c.status==="離脱注意" ? 0.45 : 0.85;
+      let next = bookedBy[c.id] ? U.addDays(bookedBy[c.id], c.cycle) : U.addDays(c.lastVisit, c.cycle);
+      if (!bookedBy[c.id] && next < T) next = U.addDays(T, Math.floor(c.cycle*0.15)); // 周期を過ぎている人は近いうちに
+      while (next < from) next = U.addDays(next, c.cycle);
+      if (next <= me){ due += p; if (!bookedBy[c.id] || bookedBy[c.id] < from) dueNotBooked++; }
+    });
+    let newExp = i===0 ? newPerMonth * remainDays / target.days : newPerMonth;
+    const bizLeft = L.businessDays(from, me);
+    const cap = bizLeft * Math.floor(DAY_MIN / avgDur);
+    if (i===0){ const en = sum("en"); const n0 = Math.min(Math.round(newExp), en); newExp = n0; due = en - n0; }
+    else { const room = Math.max(0, cap - bs.length - newExp); due = Math.min(due, room); }
+    const visits = Math.min(cap, bs.length + due + newExp);
+    const sales = (i===0 ? actual : 0) + bs.reduce((a,b)=>a+b.price,0) + bs.length*avgProd + Math.max(0, visits - bs.length)*avgTicket;
+    const t = L.targetFor(mo);
+    return { mo, bs:bs.length, due:Math.round(due), dueNotBooked, newExp:Math.round(newExp), visits:Math.round(visits), sales: i===0 ? landing : sales, t };
+  });
+  $("tblNext").innerHTML = `<tr><th>月</th><th>予約済み</th><th>再来の見込み</th><th>新規の見込み</th><th>予測売上</th><th>目標比</th></tr>` +
+    rows.map((r,i) => `<tr><td>${+r.mo.slice(5)}月${i===0?'<span class="muted">（残り）</span>':''}</td><td>${r.bs}人</td><td>${r.due}人</td><td>${r.newExp}人</td><td><b>${yen(r.sales)}</b></td><td class="${r.sales>=r.t.sales?'up':'down'}">${Math.round(r.sales/r.t.sales*100)}%</td></tr>`).join("");
+  const n1 = rows[1];
+  $("nextInsight").innerHTML = `<span>💡</span><span>${+n1.mo.slice(5)}月に来店周期をむかえるのにまだ予約がないお客様が <b>${n1.dueNotBooked}人</b> います。お会計のときの次回予約や、来店から${Math.round(45)}日後のLINEでのお声がけで、取りこぼしを防げます。</span>`;
+}
+
+renderTop(); renderCharts(); renderDays(); renderSim(); renderNext();
+if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { renderTop(); renderCharts(); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>原価管理｜hair salon Lumi（デモ）</title>
+<link rel="stylesheet" href="../common/app.css">
+<style>
+.rank{display:flex;flex-direction:column;gap:6px}
+.rk{display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center;font-size:13px}
+.rk .no{font-weight:800;color:var(--muted);text-align:center}
+.rk .nm{min-width:0}
+.rk .nm b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rk .nm small{color:var(--muted);font-size:11px}
+.rk .hb{height:8px;border-radius:999px;background:var(--surface-2);margin-top:4px;overflow:hidden}
+.rk .hb i{display:block;height:100%;border-radius:999px;background:var(--s1)}
+.rk .hb i.low{background:var(--s2)}
+.rk .v{font-weight:800;font-variant-numeric:tabular-nums;text-align:right;min-width:86px}
+.rk .v small{display:block;font-weight:400;font-size:10.5px;color:var(--muted)}
+.bep{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:680px){.bep{grid-template-columns:1fr 1fr}}
+.bep .box{background:var(--surface-2);border-radius:12px;padding:12px 14px}
+.bep .box b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.bep .box span{font-size:12px;color:var(--text-2)}
+.meter{position:relative;height:14px;background:var(--surface-2);border-radius:999px;margin:16px 0 26px}
+.meter i{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:var(--good)}
+.meter .mk{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--text)}
+.meter .mk span{position:absolute;top:22px;left:50%;transform:translateX(-50%);font-size:11px;white-space:nowrap;color:var(--text-2)}
+select.full{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:10px;background:var(--surface);font-size:15px;margin-bottom:10px}
+.recipe input{width:76px;text-align:right;padding:5px 6px;border:1px solid var(--border);border-radius:7px;background:var(--surface-2);font-variant-numeric:tabular-nums}
+.pl td.neg{color:var(--bad)}
+.calc-line{display:flex;justify-content:space-between;font-size:13.5px;padding:6px 0;border-bottom:1px dashed var(--border)}
+.calc-line:last-child{border-bottom:0;font-weight:800}
+</style>
+</head>
+<body>
+<script src="../common/lumi-data.js"></script>
+<script>
+window.DEMO = {
+  id: "cost", app: "原価管理",
+  pain: "売上はあるのに、なぜかお金が残らない。どのメニューが本当にもうかっているのか、価格を上げるべきなのかがわからない。",
+  steps: [
+    { t: "上の4つの数字で、先月の利益を確認", d: "売上から材料費・手数料・固定費を引いて、手元にいくら残ったかがわかります。" },
+    { t: "「損益分岐点」を見る", d: "毎月いくら売れば赤字にならないか、あと何人で黒字ラインかを表示します。" },
+    { t: "「1時間あたりの利益ランキング」を見る", d: "ひとりサロンは時間が上限。売上は高くても、時間あたりでは損しているメニューが見つかります。" },
+    { t: "メニューを選んで、価格や薬剤の量を変えてみる", d: "値上げしたら時間あたりの利益がいくら変わるか、その場で試算できます。" },
+    { t: "固定費の金額を変えてみる", d: "家賃や予約サイトの費用を変えると、損益分岐点がどう動くかがわかります。" }
+  ]
+};
+</script>
+<script src="../common/demo-kit.js"></script>
+
+<div class="wrap">
+  <div class="apphead">
+    <h1>原価管理</h1>
+    <p id="sub"></p>
+  </div>
+  <div class="seg" id="monthSeg" style="margin:8px 0 4px"></div>
+
+  <div class="tiles" style="margin-top:12px">
+    <div class="tile"><div class="t">売上</div><div class="n" id="tSales">—</div><div class="d" id="tSalesD"></div></div>
+    <div class="tile"><div class="t">変動費（材料・店販原価・手数料）</div><div class="n" id="tVar">—</div><div class="d" id="tVarD"></div></div>
+    <div class="tile"><div class="t">固定費</div><div class="n" id="tFix">—</div><div class="d">家賃・光熱費など</div></div>
+    <div class="tile"><div class="t">利益（オーナーの取り分）</div><div class="n" id="tProfit">—</div><div class="d" id="tProfitD"></div></div>
+  </div>
+
+  <div class="card">
+    <h2>損益分岐点</h2>
+    <p class="lead">固定費をまかなうために、毎月最低いくら売り上げればいいか。</p>
+    <div class="bep">
+      <div class="box"><span>損益分岐点の売上</span><b id="bepSales">—</b><span id="bepPeople"></span></div>
+      <div class="box"><span>安全余裕率（売上がどれだけ下がっても黒字か）</span><b id="safety">—</b><span id="safetyNote"></span></div>
+    </div>
+    <div class="meter" id="meter"></div>
+  </div>
+
+  <div class="card">
+    <h2>1時間あたりの利益ランキング（メニュー別）</h2>
+    <p class="lead">ひとりサロンは「時間」が上限です。売上ではなく、1時間あたりに残る金額でメニューを比べます。<br>計算：（価格 − 材料費 − 決済手数料）÷ 施術時間 − 1時間あたりの固定費（<span id="fixHour"></span>）</p>
+    <div class="rank" id="rank"></div>
+    <div class="insight" id="rankInsight"></div>
+  </div>
+
+  <div class="card">
+    <h2>メニュー原価の詳細・値上げの試算</h2>
+    <select class="full" id="menuSel" aria-label="メニューを選ぶ"></select>
+    <div class="tbl recipe"><table id="tblRecipe"></table></div>
+    <div class="slider"><div class="sh"><span>価格</span><b id="vPrice">—</b></div><input type="range" id="sPrice" min="0" max="0" step="110"><small id="priceNote"></small></div>
+    <div id="menuCalc"></div>
+  </div>
+
+  <div class="card">
+    <h2>月別の損益</h2>
+    <div class="legend"><span><i style="background:var(--s1)"></i>利益</span><span><i class="line"></i>損益分岐点の売上を超えた分が利益になります</span></div>
+    <div class="cv"><canvas id="chPL"></canvas></div>
+    <div class="tbl pl" style="margin-top:10px"><table id="tblPL"></table></div>
+    <p class="hint" style="margin:8px 0 0">材料費はメニューごとのレシピ（薬剤の使用量）から計算した値です。実際の仕入れ額は「在庫・発注管理」の集計で見られます。</p>
+  </div>
+
+  <div class="card">
+    <h2>固定費（月額）</h2>
+    <p class="lead">金額を変えると、損益分岐点とランキングがすぐに変わります。</p>
+    <div id="fixList"></div>
+    <div class="field"><label><b>合計</b></label><b class="num" id="fixTotal"></b></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script>
+(function(){
+"use strict";
+const L = window.LUMI, U = L.util, T = L.TODAY;
+const $ = id => document.getElementById(id);
+const fmt = n => Math.round(n).toLocaleString("ja-JP");
+const yen = n => (n<0?"-":"") + "¥" + fmt(Math.abs(n));
+const pct = n => (n*100).toFixed(1) + "%";
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+
+$("sub").textContent = `${L.salon.name}｜${L.salon.owner}（ひとりサロン・営業 ${L.salon.open}〜${L.salon.close}）`;
+const fixed = L.fixedCosts.map(f => Object.assign({}, f));
+const menus = L.menus.map(m => Object.assign({}, m, { recipe: Object.assign({}, m.recipe) }));
+const mats = {}; L.materials.forEach(m => { mats[m.id] = Object.assign({}, m); });
+const feeRate = L.cardFeeRate * L.cardShare;
+
+const fixTotal = () => fixed.reduce((a,f)=>a+(Number(f.amount)||0),0);
+const matCost = m => Math.round(Object.keys(m.recipe).reduce((a,k) => a + mats[k].cost / mats[k].size * m.recipe[k], 0));
+const menuById = id => menus.find(m => m.id===id);
+
+/* ---------- 月の損益 ---------- */
+const months = []; { let m = U.addMonths(T,-6); while (m < U.monthStart(T)){ months.push(m.slice(0,7)); m = U.addMonths(m,1); } }
+let selMonth = months[months.length-1];
+function monthPL(mo){
+  const vs = L.visits.filter(v => v.date.slice(0,7)===mo);
+  const tech = vs.reduce((a,v)=>a+v.price,0), prod = vs.reduce((a,v)=>a+v.prodSales,0), sales = tech + prod;
+  const material = vs.reduce((a,v)=>a + v.menus.reduce((b,id)=>b+matCost(menuById(id)),0), 0);
+  const cogs = vs.reduce((a,v)=>a + v.items.reduce((b,it)=>b + L.prodById[it.id].cost*it.qty, 0), 0);
+  const fee = sales * feeRate;
+  const variable = material + cogs + fee, fix = fixTotal();
+  const days = L.businessDays(mo+"-01", U.monthEnd(mo+"-01"));
+  return { mo, n:vs.length, tech, prod, sales, material, cogs, fee, variable, fix, profit: sales - variable - fix, days, unit: vs.length ? sales/vs.length : 0 };
+}
+
+function renderMonthSeg(){
+  $("monthSeg").innerHTML = months.slice(-4).map(m => `<button data-m="${m}" class="${m===selMonth?"on":""}">${+m.slice(5)}月</button>`).join("");
+  $("monthSeg").querySelectorAll("button").forEach(b => b.onclick = () => { selMonth = b.dataset.m; renderAll(); });
+}
+
+function renderTop(){
+  const p = monthPL(selMonth), prev = monthPL(months[months.indexOf(selMonth)-1] || selMonth);
+  $("tSales").textContent = yen(p.sales);
+  $("tSalesD").textContent = `${p.n}人・客単価 ${yen(p.unit)}`;
+  $("tVar").textContent = yen(p.variable);
+  $("tVarD").textContent = `材料 ${yen(p.material)}（技術売上の${pct(p.material/p.tech)}）`;
+  $("tFix").textContent = yen(p.fix);
+  $("tProfit").textContent = yen(p.profit);
+  const d = p.profit - prev.profit;
+  $("tProfitD").innerHTML = `利益率 ${pct(p.profit/p.sales)}${selMonth!==months[0] ? `　<span class="${d>=0?"up":"down"}">${d>=0?"▲":"▼"}${yen(Math.abs(d))}</span>` : ""}`;
+  // 損益分岐点
+  const cr = 1 - p.variable / p.sales;           // 限界利益率
+  const bep = p.fix / cr;
+  $("bepSales").textContent = yen(bep);
+  $("bepPeople").textContent = `客単価 ${yen(p.unit)} なら 月 ${Math.ceil(bep/p.unit)} 人（1日 ${(bep/p.unit/p.days).toFixed(1)} 人）`;
+  const safety = (p.sales - bep) / p.sales;
+  $("safety").textContent = pct(safety);
+  $("safetyNote").textContent = safety >= 0.3 ? "30%以上あれば安心の水準です" : safety >= 0.1 ? "やや余裕が少なめです" : "赤字に近い状態です";
+  const max = Math.max(p.sales, bep) * 1.15;
+  $("meter").innerHTML = `<i style="width:${p.sales/max*100}%"></i><b class="mk" style="left:${bep/max*100}%"><span>損益分岐点</span></b>`;
+}
+
+/* ---------- メニュー別ランキング ---------- */
+function bizHours(){ const p = monthPL(selMonth); return p.days * (L.CLOSE_MIN - L.OPEN_MIN) / 60; }
+function menuRow(m, price){
+  price = price == null ? m.price : price;
+  const mc = matCost(m), fee = price * feeRate, gross = price - mc - fee;
+  const fixH = fixTotal() / bizHours();
+  const perHour = gross / (m.min/60) - fixH;
+  return { m, price, mc, fee, gross, perHour, rate: mc/price, fixH };
+}
+function renderRank(){
+  const fixH = fixTotal() / bizHours();
+  $("fixHour").textContent = yen(fixH) + "／時間";
+  const rows = menus.map(m => menuRow(m)).sort((a,b) => b.perHour - a.perHour);
+  const max = Math.max(...rows.map(r => r.perHour));
+  const avg = rows.reduce((a,r)=>a+r.perHour,0)/rows.length;
+  $("rank").innerHTML = rows.map((r,i) => `<div class="rk"><span class="no">${i+1}</span><div class="nm"><b>${esc(r.m.name)}</b><small>${yen(r.price)}・${r.m.min}分・原価率 ${pct(r.rate)}</small><div class="hb"><i class="${r.perHour<avg*0.8?"low":""}" style="width:${Math.max(3, r.perHour/max*100)}%"></i></div></div><span class="v">${yen(r.perHour)}<small>／時間</small></span></div>`).join("");
+  const top = rows[0], lowR = rows.filter(r => !r.m.addon).sort((a,b)=>a.perHour-b.perHour)[0];
+  const need = Math.ceil(((avg + fixH) * lowR.m.min/60 + lowR.mc) / (1 - feeRate) / 110) * 110;
+  $("rankInsight").innerHTML = `<span>💡</span><span>「${esc(top.m.name)}」など短時間の追加メニューは、1時間あたりの利益が高めです。一方「<b>${esc(lowR.m.name)}</b>」は売上は大きいものの時間がかかるため、時間あたりでは低めです。平均並みにするなら価格 <b>${yen(need)}</b> が目安です（下で試算できます）。</span>`;
+}
+
+/* ---------- メニュー詳細 ---------- */
+function renderMenuSel(){
+  $("menuSel").innerHTML = menus.map(m => `<option value="${m.id}">${esc(m.name)}（${yen(m.price)}・${m.min}分）</option>`).join("");
+  $("menuSel").value = "shuku";
+}
+function renderMenu(keepPrice){
+  const m = menuById($("menuSel").value);
+  $("tblRecipe").innerHTML = `<tr><th>材料</th><th>使用量</th><th>単価</th><th>金額</th></tr>` + Object.keys(m.recipe).map(k => {
+    const mt = mats[k], unitCost = mt.cost / mt.size;
+    return `<tr><td>${esc(mt.name)}</td><td><input type="number" inputmode="decimal" data-k="${k}" value="${m.recipe[k]}"> ${mt.use}</td><td>${yen(unitCost*10)}／10${mt.use}</td><td>${yen(unitCost*m.recipe[k])}</td></tr>`;
+  }).join("") + `<tr><td><b>材料費の合計</b></td><td></td><td></td><td><b>${yen(matCost(m))}</b></td></tr>`;
+  $("tblRecipe").querySelectorAll("input").forEach(el => el.onchange = () => { m.recipe[el.dataset.k] = Math.max(0, Number(el.value)||0); renderMenu(true); renderRank(); renderTop(); renderPL(); });
+  const sp = $("sPrice");
+  if (!keepPrice){ sp.min = Math.round(m.price*0.8/110)*110; sp.max = Math.round(m.price*1.3/110)*110; sp.value = m.price; }
+  calcMenu();
+}
+function calcMenu(){
+  const m = menuById($("menuSel").value), price = +$("sPrice").value;
+  const now = menuRow(m), sim = menuRow(m, price);
+  $("vPrice").textContent = yen(price) + (price!==m.price ? `（${price>m.price?"+":""}${yen(price-m.price)}）` : "（今の価格）");
+  const per = L.visits.filter(v => v.menus.includes(m.id) && v.date.slice(0,7)===selMonth).length;
+  $("priceNote").textContent = `${+selMonth.slice(5)}月の施術数 ${per} 件。価格を変えると、月に約 ${yen((price-m.price)*per)} 変わります（お客様の数が変わらない場合）`;
+  $("menuCalc").innerHTML = `
+    <div class="calc-line"><span>価格</span><span class="num">${yen(price)}</span></div>
+    <div class="calc-line"><span>− 材料費</span><span class="num">${yen(sim.mc)}</span></div>
+    <div class="calc-line"><span>− 決済手数料（キャッシュレス${Math.round(L.cardShare*100)}%で計算）</span><span class="num">${yen(sim.fee)}</span></div>
+    <div class="calc-line"><span>＝ 1回あたりに残る金額（${m.min}分）</span><span class="num">${yen(sim.gross)}</span></div>
+    <div class="calc-line"><span>1時間あたりの利益（固定費 ${yen(sim.fixH)}／時間を引いた後）</span><span class="num">${yen(sim.perHour)}${price!==m.price?` <span class="${sim.perHour>=now.perHour?"up":"down"}">（${sim.perHour>=now.perHour?"+":""}${yen(sim.perHour-now.perHour)}）</span>`:""}</span></div>`;
+}
+$("menuSel").onchange = () => renderMenu(false);
+$("sPrice").oninput = calcMenu;
+
+/* ---------- 月別の損益 ---------- */
+let chart;
+function renderPL(){
+  const rows = months.map(monthPL);
+  $("tblPL").innerHTML = `<tr><th>月</th><th>売上</th><th>材料費</th><th>店販原価</th><th>手数料</th><th>固定費</th><th>利益</th><th>利益率</th></tr>` +
+    rows.map(r => `<tr><td>${+r.mo.slice(5)}月</td><td>${yen(r.sales)}</td><td>${yen(r.material)}</td><td>${yen(r.cogs)}</td><td>${yen(r.fee)}</td><td>${yen(r.fix)}</td><td class="${r.profit<0?"neg":""}"><b>${yen(r.profit)}</b></td><td>${pct(r.profit/r.sales)}</td></tr>`).join("");
+  if (!window.Chart) return;
+  if (chart) chart.destroy();
+  chart = new Chart($("chPL"), { type:"bar", data:{ labels: rows.map(r => +r.mo.slice(5)+"月"), datasets:[
+      { label:"利益", data: rows.map(r => Math.round(r.profit)), backgroundColor: rows.map(r => r.profit<0 ? css("--bad") : css("--s1")), borderRadius:4, maxBarThickness:36 } ] },
+    options:{ responsive:true, maintainAspectRatio:false, animation:{duration:250},
+      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:css("--text"), titleColor:css("--bg"), bodyColor:css("--bg"), footerColor:css("--bg"), padding:10, cornerRadius:8,
+        callbacks:{ label:c => " 利益："+yen(c.parsed.y), footer:it => { const r = rows[it[0].dataIndex]; return "売上 "+yen(r.sales)+"／利益率 "+pct(r.profit/r.sales); } } } },
+      scales:{ x:{ grid:{display:false}, ticks:{color:css("--text-2")} }, y:{ beginAtZero:true, grid:{color:css("--grid")}, border:{display:false}, ticks:{ color:css("--text-2"), maxTicksLimit:5, callback:v => (v/10000)+"万" } } } } });
+}
+
+/* ---------- 固定費 ---------- */
+function renderFixed(){
+  $("fixList").innerHTML = fixed.map((f,i) => `<div class="field"><label for="fx${i}">${esc(f.name)}</label><input id="fx${i}" type="text" inputmode="numeric" data-i="${i}" value="${fmt(f.amount)}"></div>`).join("");
+  $("fixList").querySelectorAll("input").forEach(el => {
+    el.oninput = () => { fixed[el.dataset.i].amount = Number(String(el.value).replace(/[^\d]/g,"")) || 0; $("fixTotal").textContent = yen(fixTotal()); renderTop(); renderRank(); calcMenu(); renderPL(); };
+    el.onblur = () => { el.value = fmt(fixed[el.dataset.i].amount); };
+  });
+  $("fixTotal").textContent = yen(fixTotal());
+}
+
+function renderAll(){ renderMonthSeg(); renderTop(); renderRank(); calcMenu(); renderPL(); }
+renderMenuSel(); renderFixed(); renderMenu(false); renderAll();
+if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderPL);
+})();
+</script>
+</body>
+</html>

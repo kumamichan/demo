@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>在庫・発注管理｜hair salon Lumi（デモ）</title>
+<style>
+  :root{
+    --bg:#faf6f0; --card:#ffffff; --ink:#2b2420; --sub:#8a7f74;
+    --accent:#b8935a; --accent-dark:#8f6f40; --line:#e8e0d4;
+    --ok:#2f6f4f; --ok-bg:#e8f3ec; --warn:#c0453b; --warn-bg:#fdecea; --amber:#b4691f; --amber-bg:#fff6ea; --amber-line:#d9a441;
+    --c1:#2a78d6; --c2:#eb6834;
+  }
+  *{box-sizing:border-box;}
+  [hidden]{display:none !important;}
+  html,body{margin:0}
+  body{font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  header{background:var(--ink);color:#fff;padding:16px;text-align:center;}
+  header h1{margin:0 0 2px;font-size:1.2em;}
+  header p{margin:0;font-size:0.8em;opacity:0.75;}
+  .tabs{display:flex;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10;overflow-x:auto;}
+  .tab-btn{flex:1 0 auto;padding:13px 10px;text-align:center;background:none;border:none;font-size:0.82em;color:var(--sub);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;font-family:inherit}
+  .tab-btn.active{color:var(--accent-dark);border-bottom:3px solid var(--accent);font-weight:bold;}
+  .badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 5px;margin-left:5px;border-radius:10px;background:#e8700f;color:#fff;font-size:0.78em;font-weight:bold;line-height:1;vertical-align:1px;}
+  main{max-width:820px;margin:0 auto;padding:16px 12px 100px;}
+  .page{display:none}.page.on{display:block}
+  .card{background:var(--card);border-radius:10px;padding:14px 16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);}
+  .card h2{margin:0 0 10px;font-size:1em;color:var(--accent-dark);}
+  .muted{color:var(--sub);font-size:0.86em;}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  input[type=text],input[type=number],input[type=search],input[type=month],select{padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:1em;background:#fff;font-family:inherit;color:inherit}
+  textarea{width:100%;font-size:0.85em;padding:10px;border:1px solid var(--line);border-radius:8px;font-family:inherit;line-height:1.6}
+  .btn{display:inline-block;padding:10px 16px;border:none;border-radius:8px;font-size:0.92em;cursor:pointer;font-weight:bold;font-family:inherit;}
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-secondary{background:#fff;color:var(--accent-dark);border:1px solid var(--accent);}
+  .btn-small{padding:6px 11px;font-size:0.8em;}
+  .btn-block{display:block;width:100%}
+  .btn:disabled{opacity:.5;cursor:default}
+  .legend{background:var(--amber-bg);border-left:4px solid var(--amber-line);padding:8px 12px;font-size:0.82em;border-radius:0 6px 6px 0;margin-bottom:12px;line-height:1.6;}
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+  .tile{background:#fff;border-radius:10px;padding:10px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+  .tile .t{font-size:.74em;color:var(--sub)}
+  .tile .n{font-size:1.25em;font-weight:bold;font-variant-numeric:tabular-nums}
+  .tile.warn .n{color:var(--warn)} .tile.amber .n{color:var(--amber)}
+  .seg{display:flex;background:#efe8dd;border-radius:9px;padding:3px;gap:2px;margin-bottom:12px;overflow-x:auto}
+  .seg button{flex:1;border:0;background:none;padding:7px 8px;border-radius:7px;font-size:.82em;color:var(--sub);cursor:pointer;white-space:nowrap;font-family:inherit}
+  .seg button.on{background:#fff;color:var(--ink);font-weight:bold;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+  .item{display:flex;gap:10px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+  .item:first-child{border-top:0}
+  .item .main{flex:1;min-width:0}
+  .item .nm{font-size:.92em;line-height:1.35}
+  .item .meta{font-size:.76em;color:var(--sub);margin-top:2px}
+  .lvl{height:7px;background:#f0ebe3;border-radius:999px;overflow:hidden;margin-top:6px;position:relative}
+  .lvl i{display:block;height:100%;border-radius:999px;background:var(--ok)}
+  .lvl i.amber{background:var(--amber-line)} .lvl i.warn{background:var(--warn)}
+  .lvl b{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink);opacity:.55}
+  .qty{text-align:right;min-width:74px}
+  .qty .v{font-size:1.15em;font-weight:bold;font-variant-numeric:tabular-nums}
+  .qty .u{font-size:.75em;color:var(--sub)}
+  .pill{display:inline-block;font-size:.7em;padding:2px 7px;border-radius:999px;font-weight:bold;margin-left:4px;vertical-align:1px}
+  .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.amber{background:var(--amber-bg);color:var(--amber)} .pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.kind{background:#f3ede4;color:var(--accent-dark);font-weight:normal}
+  .stepper{display:inline-flex;align-items:center;gap:4px}
+  .stepper button{width:32px;height:32px;border-radius:7px;border:1px solid var(--line);background:#fff;font-size:1.05em;cursor:pointer;color:var(--accent-dark)}
+  .stepper input{width:54px;text-align:center;padding:6px 2px}
+  details.category{background:#fff;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;overflow:hidden;}
+  details.category summary{padding:12px 14px;background:#f5efe6;cursor:pointer;font-weight:bold;font-size:0.9em;list-style:none;display:flex;justify-content:space-between;align-items:center;}
+  details.category summary::-webkit-details-marker{display:none;}
+  summary .count{font-size:0.8em;color:var(--accent-dark);font-weight:normal;}
+  .prod{padding:10px 12px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .prod .pn{flex:1 1 180px;font-size:.9em;line-height:1.35}
+  .prod .pn small{display:block;color:var(--sub);font-size:.8em}
+  .cgroup{margin-bottom:16px}
+  .cgroup-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap}
+  .cgroup-title{font-weight:bold;color:var(--accent-dark)}
+  .cl{display:flex;gap:8px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+  .cl .main{flex:1;min-width:0;font-size:.9em}
+  .cl .main small{display:block;color:var(--sub);font-size:.8em}
+  .rm{border:none;background:none;color:var(--sub);font-size:1.3em;cursor:pointer;padding:2px 6px}
+  .sumline{display:flex;justify-content:space-between;font-size:.9em;padding:6px 0;border-top:1px dashed var(--line);margin-top:4px;font-weight:bold}
+  .bg-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .bg-grid .full{grid-column:1 / -1}
+  .bg-grid label{font-size:.8em;color:var(--sub);display:block}
+  .bg-grid input,.bg-grid select{width:100%;margin-top:3px}
+  table{width:100%;border-collapse:collapse;font-size:.85em;font-variant-numeric:tabular-nums}
+  th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  th{font-size:.78em;color:var(--sub);font-weight:normal}
+  .tbl{overflow-x:auto}
+  .cv{position:relative;height:220px}
+  .lg{display:flex;gap:12px;font-size:.78em;color:var(--sub);margin-bottom:6px}
+  .lg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+  .order{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+  .order .oh{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:.88em}
+  .order ul{margin:6px 0 0;padding-left:18px;font-size:.82em;color:var(--sub)}
+  .empty{color:var(--sub);font-size:.88em;padding:14px 0;text-align:center}
+  .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:999px;font-size:.85em;opacity:0;transition:.3s;pointer-events:none;z-index:50}
+  .toast.on{opacity:1}
+  .floatbar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));z-index:20;display:flex;gap:8px;justify-content:center}
+  .floatbar .btn{flex:1;max-width:400px}
+</style>
+</head>
+<body>
+<header>
+  <h1>在庫・発注管理</h1>
+  <p id="hdrSub">hair salon Lumi</p>
+</header>
+<div class="tabs" role="tablist">
+  <button class="tab-btn active" data-tab="pStock">📦 在庫</button>
+  <button class="tab-btn" data-tab="pOrder">📝 発注入力</button>
+  <button class="tab-btn" data-tab="pCart">🛒 カート<span class="badge" id="cartBadge">0</span></button>
+  <button class="tab-btn" data-tab="pNew">➕ 商品登録</button>
+  <button class="tab-btn" data-tab="pSum">📊 集計</button>
+</div>
+
+<main>
+<!-- 在庫 -->
+<section class="page on" id="pStock">
+  <div class="tiles">
+    <div class="tile warn"><div class="t">発注が必要</div><div class="n" id="tNeed">0品</div></div>
+    <div class="tile amber"><div class="t">少なめ</div><div class="n" id="tLow">0品</div></div>
+    <div class="tile"><div class="t">在庫金額</div><div class="n" id="tValue">¥0</div></div>
+  </div>
+  <div class="card" id="arrivingCard" hidden>
+    <h2>🚚 入荷待ち</h2>
+    <div id="arriving"></div>
+  </div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <h2 style="margin:0">在庫一覧</h2>
+      <button class="btn btn-secondary btn-small" id="btnTake">棚卸しをする</button>
+    </div>
+    <div class="seg" id="stockSeg">
+      <button data-f="all" class="on">すべて</button><button data-f="need">要発注</button><button data-f="材料">材料</button><button data-f="店販">店販</button>
+    </div>
+    <div class="legend" id="takeNote" hidden>棚卸しモード：実際に数えた数を入れて「棚卸しを保存」を押してください。開封済みの薬剤は 0.5 単位で入れられます。</div>
+    <div id="stockList"></div>
+    <p class="muted" style="margin:10px 0 0">縦線＝発注点（この数を下回ったら発注）。「あと約◯日分」は直近の使用ペースから計算しています。</p>
+  </div>
+  <button class="btn btn-primary btn-block" id="btnAutoCart">⚡ 発注が必要な商品をまとめてカートに入れる</button>
+</section>
+
+<!-- 発注入力 -->
+<section class="page" id="pOrder">
+  <div class="legend">数を入れて「カートに入れる」を押します。おすすめの数は「1ヶ月の使用量＋発注点−今の在庫」で自動計算しています。</div>
+  <input type="search" id="search" placeholder="商品名で探す" style="width:100%;margin-bottom:12px">
+  <div id="orderList"></div>
+</section>
+
+<!-- カート -->
+<section class="page" id="pCart">
+  <div class="card">
+    <h2>発注カート</h2>
+    <div id="cartList"></div>
+  </div>
+  <div class="card" id="cartActions" hidden>
+    <h2>発注内容の確認・送信</h2>
+    <div class="row" style="margin-bottom:8px">
+      <button class="btn btn-secondary btn-small" id="btnText">発注テキストを作る</button>
+      <span class="muted">発注先ごとに、LINEやメールに貼れる文ができます</span>
+    </div>
+    <div id="textBox"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn btn-primary" id="btnOrdered">発注済みにする</button>
+      <button class="btn btn-secondary btn-small" id="btnClear">カートを空にする</button>
+    </div>
+    <p class="muted" style="margin:8px 0 0">「発注済みにする」と「入荷待ち」に入り、届いたらワンタップで在庫に反映できます。</p>
+  </div>
+</section>
+
+<!-- 商品登録 -->
+<section class="page" id="pNew">
+  <div class="card">
+    <h2>新しい商品を登録</h2>
+    <p class="muted" style="margin-top:0">登録した商品は、すぐ「在庫」と「発注入力」に出ます。</p>
+    <div class="bg-grid">
+      <label>区分<select id="nKind"><option>材料</option><option>店販</option></select></label>
+      <label>カテゴリ<input type="text" id="nCat" placeholder="例：カラー剤"></label>
+      <label class="full">商品名<input type="text" id="nName" placeholder="例：カラー剤 ベージュ系 80g"></label>
+      <label>単位<input type="text" id="nUnit" value="本"></label>
+      <label>仕入れ値（円）<input type="number" id="nCost" inputmode="numeric" placeholder="980"></label>
+      <label>発注先<select id="nSup"></select></label>
+      <label>発注点<input type="number" id="nReorder" inputmode="decimal" value="2"></label>
+      <label>今の在庫<input type="number" id="nStock" inputmode="decimal" value="0"></label>
+    </div>
+    <button class="btn btn-primary btn-block" id="btnNew" style="margin-top:12px">登録する</button>
+  </div>
+</section>
+
+<!-- 集計 -->
+<section class="page" id="pSum">
+  <div class="card">
+    <h2>仕入れ額の推移（月別）</h2>
+    <div class="lg"><span><i style="background:var(--c1)"></i>材料</span><span><i style="background:var(--c2)"></i>店販</span></div>
+    <div class="cv"><canvas id="chOrders"></canvas></div>
+  </div>
+  <div class="card">
+    <h2>月別の材料費率</h2>
+    <div class="tbl"><table id="tblRate"></table></div>
+    <p class="muted" style="margin:8px 0 0">材料費率＝材料の仕入れ額 ÷ 技術売上（物販を除く売上）。一般的に8〜12%が目安です。メニューごとの原価は「原価管理」で見られます。</p>
+  </div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <h2 style="margin:0">発注履歴</h2>
+      <input type="month" id="sumMonth">
+    </div>
+    <div id="sumList"></div>
+  </div>
+</section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="../common/lumi-data.js"></script>
+<script>
+window.DEMO = {
+  id: "stock", app: "在庫・発注管理",
+  pain: "薬剤やシャンプーの在庫を把握しておらず、気づいたら切れている。逆に買いすぎて、使い切れない在庫が棚に眠っている。",
+  steps: [
+    { t: "「在庫」で残りを確認", d: "発注点を下回った商品は赤で表示。「あと約◯日分」も自動で出ます。" },
+    { t: "「⚡ まとめてカートに入れる」を押す", d: "足りない商品が、ちょうどいい数でカートに入ります。" },
+    { t: "「カート」で発注テキストを作る", d: "ディーラーさんごとに、LINEやメールに貼れる発注文ができます。" },
+    { t: "「発注済みにする」→「入荷した」", d: "届いたらワンタップで在庫に反映。数え直しは「棚卸しをする」から。" },
+    { t: "「集計」で仕入れ額と材料費率を見る", d: "毎月いくら仕入れているか、売上に対して材料費が多すぎないかがわかります。" }
+  ]
+};
+</script>
+<script src="../common/demo-kit.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script>
+(function(){
+"use strict";
+const L = window.LUMI, U = L.util;
+const $ = id => document.getElementById(id);
+const fmt = n => Math.round(n).toLocaleString("ja-JP");
+const yen = n => "¥" + fmt(n);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const r1 = n => Math.round(n * 10) / 10;
+const supName = id => (L.suppliers.find(s => s.id === id) || {}).name || id;
+let toastT; function toast(m){ const t=$("toast"); t.textContent=m; t.classList.add("on"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("on"),1800); }
+$("hdrSub").textContent = L.salon.name + "｜" + L.salon.owner;
+
+/* ---------- 商品データ（材料＋店販） ---------- */
+const from = U.addDays(L.TODAY, -60);
+const recent = L.visits.filter(v => v.date >= from);
+const use60 = L.usageOf(recent);
+const sold60 = {}; L.products.forEach(p => { sold60[p.id] = 0; }); recent.forEach(v => v.items.forEach(it => { sold60[it.id] += it.qty; }));
+const items = L.materials.map(m => ({ id:m.id, kind:"材料", cat:m.cat, name:m.name, unit:m.unit, cost:m.cost, supplier:m.supplier, reorder:m.reorder, stock:L.stock[m.id], monthly: r1(use60[m.id] / m.size / 2) }))
+  .concat(L.products.map(p => ({ id:p.id, kind:"店販", cat:"店販品", name:p.name, unit:"個", cost:p.cost, supplier:p.supplier, reorder:p.reorder, stock:L.stock[p.id], monthly: r1(sold60[p.id] / 2) })));
+const S = { filter:"all", take:false, cart:{}, orders: L.orders.map(o => Object.assign({}, o)), arriving: [], seq: 1000 };
+
+function status(it){ return it.stock <= it.reorder ? "need" : it.stock <= it.reorder * 1.6 ? "low" : "ok"; }
+function suggest(it){ return Math.max(1, Math.ceil(it.monthly + it.reorder - it.stock)); }
+function daysLeft(it){ return it.monthly > 0 ? Math.floor(it.stock / (it.monthly / 30)) : null; }
+
+/* ---------- 在庫 ---------- */
+function renderStock(){
+  const need = items.filter(i => status(i)==="need"), low = items.filter(i => status(i)==="low");
+  $("tNeed").textContent = need.length + "品"; $("tLow").textContent = low.length + "品";
+  $("tValue").textContent = yen(items.reduce((a,i) => a + i.stock * i.cost, 0));
+  let list = items.slice();
+  if (S.filter==="need") list = list.filter(i => status(i)!=="ok");
+  else if (S.filter!=="all") list = list.filter(i => i.kind===S.filter);
+  list.sort((a,b) => ({need:0,low:1,ok:2}[status(a)] - {need:0,low:1,ok:2}[status(b)]) || (a.kind<b.kind?-1:1));
+  $("stockList").innerHTML = list.map(it => {
+    const st = status(it), max = Math.max(it.reorder * 3, it.stock, 1), dl = daysLeft(it);
+    const pill = st==="need" ? '<span class="pill warn">発注が必要</span>' : st==="low" ? '<span class="pill amber">少なめ</span>' : '';
+    const right = S.take
+      ? `<span class="stepper"><button type="button" data-d="-${it.kind==="材料"?0.5:1}" data-id="${it.id}">−</button><input type="text" inputmode="decimal" data-take="${it.id}" value="${r1(it.stock)}"><button type="button" data-d="${it.kind==="材料"?0.5:1}" data-id="${it.id}">＋</button></span>`
+      : `<div class="qty"><div class="v">${r1(it.stock)}</div><div class="u">${it.unit}</div></div>`;
+    return `<div class="item"><div class="main"><div class="nm">${esc(it.name)}${pill}</div>
+      <div class="meta"><span class="pill kind">${it.kind}・${esc(it.cat)}</span> 発注点 ${it.reorder}${it.unit}　${dl==null?"":"あと約"+dl+"日分"}　${esc(supName(it.supplier))}</div>
+      <div class="lvl"><i class="${st==="need"?"warn":st==="low"?"amber":""}" style="width:${Math.min(100,it.stock/max*100)}%"></i><b style="left:${it.reorder/max*100}%"></b></div></div>${right}</div>`;
+  }).join("") || '<div class="empty">該当する商品はありません</div>';
+  if (S.take){
+    $("stockList").querySelectorAll(".stepper button").forEach(b => b.onclick = () => { const el = $("stockList").querySelector(`[data-take="${b.dataset.id}"]`); el.value = Math.max(0, r1(Number(el.value||0) + Number(b.dataset.d))); });
+  }
+  $("btnTake").textContent = S.take ? "棚卸しを保存" : "棚卸しをする";
+  $("takeNote").hidden = !S.take;
+  // 入荷待ち
+  $("arrivingCard").hidden = !S.arriving.length;
+  $("arriving").innerHTML = S.arriving.map(o => `<div class="order"><div class="oh"><span><b>${esc(supName(o.supplier))}</b>　${o.date.slice(5).replace("-","/")} 発注　${yen(o.total)}</span><button class="btn btn-primary btn-small" data-arrive="${o.id}">入荷した</button></div>
+    <ul>${o.lines.map(l => `<li>${esc(l.name)} × ${l.qty}${l.unit}</li>`).join("")}</ul></div>`).join("");
+  $("arriving").querySelectorAll("[data-arrive]").forEach(b => b.onclick = () => arrive(b.dataset.arrive));
+  updateBadge();
+}
+$("stockSeg").querySelectorAll("button").forEach(b => b.onclick = () => { S.filter = b.dataset.f; $("stockSeg").querySelectorAll("button").forEach(x => x.classList.toggle("on", x===b)); renderStock(); });
+$("btnTake").onclick = () => {
+  if (S.take){
+    $("stockList").querySelectorAll("[data-take]").forEach(el => { const it = items.find(i => i.id===el.dataset.take); it.stock = Math.max(0, r1(Number(el.value) || 0)); });
+    S.take = false; toast("棚卸しの結果を保存しました");
+  } else { S.take = true; S.filter = "all"; $("stockSeg").querySelectorAll("button").forEach(x => x.classList.toggle("on", x.dataset.f==="all")); }
+  renderStock();
+};
+$("btnAutoCart").onclick = () => {
+  const need = items.filter(i => status(i)==="need");
+  if (!need.length){ toast("発注が必要な商品はありません"); return; }
+  need.forEach(i => { S.cart[i.id] = Math.max(S.cart[i.id] || 0, suggest(i)); });
+  toast(need.length + "品をカートに入れました"); updateBadge(); showTab("pCart");
+};
+function arrive(id){
+  const i = S.arriving.findIndex(o => o.id===id); if (i<0) return;
+  const o = S.arriving[i];
+  o.lines.forEach(l => { const it = items.find(x => x.id===l.id); if (it) it.stock = r1(it.stock + l.qty); });
+  o.status = "納品済み"; S.arriving.splice(i,1);
+  toast("在庫に反映しました"); renderStock();
+}
+
+/* ---------- 発注入力 ---------- */
+function renderOrder(){
+  const q = $("search").value.trim();
+  const cats = [];
+  items.forEach(it => { const key = it.kind + "｜" + it.cat; if (!cats.includes(key)) cats.push(key); });
+  $("orderList").innerHTML = cats.map(key => {
+    const list = items.filter(it => it.kind + "｜" + it.cat === key && (!q || it.name.includes(q)));
+    if (!list.length) return "";
+    const open = q || list.some(it => status(it)!=="ok");
+    return `<details class="category" ${open?"open":""}><summary><span>${esc(key.replace("｜","：")) }</span><span class="count">${list.length}品</span></summary>
+      ${list.map(it => `<div class="prod"><div class="pn">${esc(it.name)} ${status(it)==="need"?'<span class="pill warn">要発注</span>':status(it)==="low"?'<span class="pill amber">少なめ</span>':''}
+        <small>在庫 ${r1(it.stock)}${it.unit}・月に約${it.monthly}${it.unit}使用・${yen(it.cost)}／${it.unit}・${esc(supName(it.supplier))}</small></div>
+        <span class="stepper"><button type="button" data-d="-1" data-id="${it.id}">−</button><input type="text" inputmode="numeric" data-q="${it.id}" value="${status(it)==="ok"?1:suggest(it)}"><button type="button" data-d="1" data-id="${it.id}">＋</button></span>
+        <button class="btn btn-primary btn-small" data-add="${it.id}">カートに入れる</button></div>`).join("")}</details>`;
+  }).join("") || '<div class="empty">見つかりません</div>';
+  $("orderList").querySelectorAll(".stepper button").forEach(b => b.onclick = () => { const el = $("orderList").querySelector(`[data-q="${b.dataset.id}"]`); el.value = Math.max(1, (Number(el.value)||0) + Number(b.dataset.d)); });
+  $("orderList").querySelectorAll("[data-add]").forEach(b => b.onclick = () => {
+    const id = b.dataset.add, n = Math.max(1, Number($("orderList").querySelector(`[data-q="${id}"]`).value) || 1);
+    S.cart[id] = (S.cart[id] || 0) + n; updateBadge(); toast("カートに入れました");
+  });
+}
+$("search").oninput = renderOrder;
+
+/* ---------- カート ---------- */
+function updateBadge(){ const n = Object.keys(S.cart).length; $("cartBadge").textContent = n; $("cartBadge").hidden = !n; }
+function cartLines(){ return Object.keys(S.cart).map(id => { const it = items.find(i => i.id===id); return { id, name:it.name, qty:S.cart[id], unit:it.unit, price:it.cost, supplier:it.supplier, kind:it.kind }; }); }
+function renderCart(){
+  const lines = cartLines();
+  $("cartActions").hidden = !lines.length;
+  if (!lines.length){ $("cartList").innerHTML = '<div class="empty">カートは空です。「在庫」の ⚡ ボタンか「発注入力」から追加してください。</div>'; $("textBox").innerHTML=""; return; }
+  $("cartList").innerHTML = L.suppliers.map(sp => {
+    const ls = lines.filter(l => l.supplier===sp.id); if (!ls.length) return "";
+    return `<div class="cgroup"><div class="cgroup-head"><span class="cgroup-title">${esc(sp.name)}</span><span class="muted">${ls.length}品</span></div>
+      ${ls.map(l => `<div class="cl"><div class="main">${esc(l.name)}<small>${yen(l.price)} × ${l.qty}${l.unit} ＝ ${yen(l.price*l.qty)}</small></div>
+        <span class="stepper"><button type="button" data-d="-1" data-id="${l.id}">−</button><input type="text" inputmode="numeric" data-c="${l.id}" value="${l.qty}"><button type="button" data-d="1" data-id="${l.id}">＋</button></span>
+        <button class="rm" data-rm="${l.id}" aria-label="削除">×</button></div>`).join("")}
+      <div class="sumline"><span>小計</span><span>${yen(ls.reduce((a,l)=>a+l.price*l.qty,0))}</span></div></div>`;
+  }).join("") + `<div class="sumline" style="font-size:1em"><span>合計</span><span>${yen(lines.reduce((a,l)=>a+l.price*l.qty,0))}</span></div>`;
+  $("cartList").querySelectorAll(".stepper button").forEach(b => b.onclick = () => { const id=b.dataset.id; S.cart[id] = Math.max(1, S.cart[id] + Number(b.dataset.d)); renderCart(); });
+  $("cartList").querySelectorAll("[data-c]").forEach(el => el.onchange = () => { S.cart[el.dataset.c] = Math.max(1, Number(el.value)||1); renderCart(); });
+  $("cartList").querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { delete S.cart[b.dataset.rm]; updateBadge(); renderCart(); });
+  $("textBox").innerHTML = "";
+}
+function buildText(spId){
+  const ls = cartLines().filter(l => l.supplier===spId);
+  return `${supName(spId)} ご担当者様\n\nいつもお世話になっております。${L.salon.name}の${L.salon.owner.split(" ")[0]}です。\n下記の発注をお願いいたします。\n\n` +
+    ls.map(l => `・${l.name}　${l.qty}${l.unit}`).join("\n") +
+    `\n\n合計 ${ls.length}品（税抜 ${yen(ls.reduce((a,l)=>a+l.price*l.qty,0))}）\n納品は次回の訪問時で大丈夫です。\nよろしくお願いいたします。`;
+}
+$("btnText").onclick = () => {
+  const sps = [...new Set(cartLines().map(l => l.supplier))];
+  $("textBox").innerHTML = sps.map(id => `<div style="margin-bottom:10px"><div class="row" style="justify-content:space-between;margin-bottom:4px"><b style="font-size:.88em">${esc(supName(id))} 用</b><button class="btn btn-secondary btn-small" data-copy="${id}">コピー</button></div><textarea rows="9" readonly id="tx_${id}">${esc(buildText(id))}</textarea></div>`).join("");
+  $("textBox").querySelectorAll("[data-copy]").forEach(b => b.onclick = async () => {
+    const t = $("tx_" + b.dataset.copy).value;
+    try { await navigator.clipboard.writeText(t); } catch(e){ const ta=$("tx_"+b.dataset.copy); ta.select(); document.execCommand("copy"); }
+    toast("コピーしました");
+  });
+};
+$("btnOrdered").onclick = () => {
+  const lines = cartLines(); if (!lines.length) return;
+  [...new Set(lines.map(l => l.supplier))].forEach(sp => {
+    const ls = lines.filter(l => l.supplier===sp);
+    const o = { id:"n"+(S.seq++), date:L.TODAY, supplier:sp, lines:ls.map(l => ({ id:l.id, name:l.name, kind:l.kind, qty:l.qty, unit:l.unit, price:l.price, supplier:sp })), total:ls.reduce((a,l)=>a+l.price*l.qty,0), status:"入荷待ち" };
+    S.orders.push(o); S.arriving.push(o);
+  });
+  S.cart = {}; updateBadge(); toast("発注済みにしました。入荷したら「在庫」から反映できます"); showTab("pStock");
+};
+$("btnClear").onclick = () => { S.cart = {}; updateBadge(); renderCart(); };
+
+/* ---------- 商品登録 ---------- */
+$("nSup").innerHTML = L.suppliers.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join("");
+$("btnNew").onclick = () => {
+  const name = $("nName").value.trim(); if (!name){ toast("商品名を入れてください"); return; }
+  const kind = $("nKind").value;
+  items.push({ id:"x"+(S.seq++), kind, cat:$("nCat").value.trim() || (kind==="店販"?"店販品":"新商品"), name, unit:$("nUnit").value.trim() || "個",
+    cost:Number($("nCost").value)||0, supplier:$("nSup").value, reorder:Number($("nReorder").value)||0, stock:Number($("nStock").value)||0, monthly:0 });
+  $("nName").value = ""; $("nCost").value = "";
+  toast("登録しました"); showTab("pStock");
+};
+
+/* ---------- 集計 ---------- */
+let chart;
+function renderSum(){
+  const months = []; let m = U.addMonths(L.TODAY, -5); while (m <= L.TODAY){ months.push(m.slice(0,7)); m = U.addMonths(m, 1); }
+  const sumOf = (mo, kind) => S.orders.filter(o => o.date.slice(0,7)===mo).reduce((a,o) => a + o.lines.filter(l => l.kind===kind).reduce((b,l)=>b+l.qty*l.price,0), 0);
+  const mat = months.map(mo => sumOf(mo,"材料")), prd = months.map(mo => sumOf(mo,"店販"));
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  if (chart) chart.destroy();
+  if (window.Chart) chart = new Chart($("chOrders"), { type:"bar",
+    data:{ labels: months.map(x => +x.slice(5)+"月"), datasets:[
+      { label:"材料", data:mat, backgroundColor:css("--c1"), borderRadius:{topLeft:0,topRight:0}, borderColor:"#fff", borderWidth:{top:2}, maxBarThickness:34 },
+      { label:"店販", data:prd, backgroundColor:css("--c2"), borderRadius:{topLeft:4,topRight:4}, borderColor:"#fff", borderWidth:{top:2}, maxBarThickness:34 } ] },
+    options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:"index",intersect:false},
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c => " "+c.dataset.label+"："+yen(c.parsed.y), footer:it => "合計："+yen(it.reduce((a,i)=>a+i.parsed.y,0)) } } },
+      scales:{ x:{stacked:true, grid:{display:false}}, y:{stacked:true, beginAtZero:true, ticks:{ callback:v => (v/10000)+"万" }, grid:{color:"#eee6da"} } } } });
+  $("tblRate").innerHTML = `<tr><th>月</th><th>材料の仕入れ</th><th>技術売上</th><th>材料費率</th></tr>` + months.map((mo,i) => {
+    const vs = L.visits.filter(v => v.date.slice(0,7)===mo), tech = vs.reduce((a,v)=>a+v.price,0);
+    const rate = tech ? mat[i]/tech : 0, part = mo===L.TODAY.slice(0,7);
+    return `<tr><td>${+mo.slice(5)}月${part?'<span class="muted">（途中）</span>':''}</td><td>${yen(mat[i])}</td><td>${yen(tech)}</td><td><b style="color:${rate>0.12&&!part?'var(--warn)':'inherit'}">${part?'—':(rate*100).toFixed(1)+'%'}</b></td></tr>`;
+  }).join("");
+  if (!$("sumMonth").value) $("sumMonth").value = L.TODAY.slice(0,7);
+  const mo = $("sumMonth").value, os = S.orders.filter(o => o.date.slice(0,7)===mo);
+  $("sumList").innerHTML = os.length ? os.map(o => `<div class="order"><div class="oh"><span><b>${esc(supName(o.supplier))}</b>　${o.date.slice(5).replace("-","/")}</span><span>${yen(o.total)} <span class="pill ${o.status==="入荷待ち"?"amber":"ok"}">${o.status}</span></span></div>
+    <ul>${o.lines.map(l => `<li>${esc(l.name)} × ${l.qty}${l.unit}（${yen(l.qty*l.price)}）</li>`).join("")}</ul></div>`).join("")
+    + `<div class="sumline"><span>この月の合計</span><span>${yen(os.reduce((a,o)=>a+o.total,0))}</span></div>` : '<div class="empty">この月の発注はありません</div>';
+}
+$("sumMonth").onchange = renderSum;
+
+/* ---------- タブ ---------- */
+function showTab(id){
+  document.querySelectorAll(".page").forEach(p => p.classList.toggle("on", p.id===id));
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab===id));
+  if (id==="pStock") renderStock();
+  if (id==="pOrder") renderOrder();
+  if (id==="pCart") renderCart();
+  if (id==="pSum") renderSum();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll(".tab-btn").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+renderStock();
+})();
+</script>
+</body>
+</html>

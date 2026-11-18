@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KPI管理｜hair salon Lumi（デモ）</title>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f4f3f0; --surface:#fcfcfb; --surface-2:#f0efec; --border:#e2e0db;
+  --text:#0b0b0b; --text-2:#52514e; --muted:#8a8984;
+  --accent:#2a78d6; --accent-ink:#ffffff;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4;
+  --good:#0ca30c; --good-ink:#006300; --warn:#fab219; --bad:#d03b3b;
+  --grid:#e8e7e3; --target:#52514e;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#111110; --surface:#1a1a19; --surface-2:#252523; --border:#33332f;
+    --text:#ffffff; --text-2:#c3c2b7; --muted:#8f8e86;
+    --accent:#3987e5;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
+    --good-ink:#4cc34c; --grid:#2c2c29; --target:#c3c2b7;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#111110; --surface:#1a1a19; --surface-2:#252523; --border:#33332f;
+  --text:#ffffff; --text-2:#c3c2b7; --muted:#8f8e86;
+  --accent:#3987e5;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181;
+  --good-ink:#4cc34c; --grid:#2c2c29; --target:#c3c2b7;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;padding-bottom:84px}
+body.lock-scroll{overflow:hidden}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:820px;margin:0 auto;padding:0 16px}
+
+/* header */
+.demo-bar{background:var(--text);color:var(--bg);font-size:12px;padding:6px 16px;text-align:center}
+.demo-bar select{background:transparent;color:inherit;border:1px solid currentColor;border-radius:6px;padding:2px 6px;margin-left:6px}
+.demo-bar select option{color:#000}
+header.top{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--border)}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;height:52px}
+.brand{font-weight:700;font-size:16px}
+.who{font-size:12px;color:var(--text-2);background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:3px 10px}
+
+/* tabs */
+nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:20;background:var(--surface);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs .wrap{display:flex;padding:0}
+nav.tabs button{flex:1;background:none;border:0;padding:10px 0 12px;font-size:11px;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav.tabs button .ic{font-size:20px;line-height:1}
+nav.tabs button.on{color:var(--accent);font-weight:700}
+
+section.page{display:none;padding:16px 0}
+section.page.on{display:block}
+h2{font-size:18px;margin:4px 0 12px}
+h3{font-size:14px;margin:0 0 10px;color:var(--text)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
+.hint{font-size:12px;color:var(--text-2)}
+.muted{color:var(--muted)}
+
+/* segmented */
+.seg{display:flex;background:var(--surface-2);border-radius:10px;padding:3px;gap:2px;overflow-x:auto}
+.seg button{flex:1;border:0;background:none;padding:7px 10px;border-radius:8px;font-size:13px;color:var(--text-2);cursor:pointer;white-space:nowrap}
+.seg button.on{background:var(--surface);color:var(--text);font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.filters{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.custom-range{display:none;gap:8px;align-items:center;font-size:13px}
+.custom-range.on{display:flex}
+.custom-range input{flex:1;min-width:0;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
+
+/* input form */
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.row:last-child{border-bottom:0}
+.row.sub{padding-left:18px}
+.row.sub .lbl::before{content:"└ ";color:var(--muted)}
+.lbl{font-size:15px}
+.row.sub .lbl{font-size:14px;color:var(--text-2)}
+.money{display:flex;align-items:center;gap:6px}
+.money input{width:140px;text-align:right;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);font-size:17px;font-variant-numeric:tabular-nums}
+.stepper{display:flex;align-items:center;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface-2);flex:none}
+.stepper button{width:40px;height:38px;border:0;background:none;font-size:20px;cursor:pointer;color:var(--accent)}
+.stepper button:active{background:var(--border)}
+.stepper input{width:44px;text-align:center;border:0;background:transparent;font-size:17px;font-variant-numeric:tabular-nums;padding:0}
+.unit{font-size:13px;color:var(--text-2);width:18px}
+.calc{display:flex;justify-content:space-between;align-items:baseline;background:var(--surface-2);border-radius:10px;padding:10px 12px;margin-top:8px}
+.calc b{font-size:20px;font-variant-numeric:tabular-nums}
+.top-fields{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.top-fields label{flex:1;min-width:140px;font-size:12px;color:var(--text-2)}
+.top-fields input,.top-fields select{display:block;width:100%;margin-top:4px;padding:9px 10px;border:1px solid var(--border);border-radius:10px;background:var(--surface);font-size:15px}
+textarea{width:100%;min-height:60px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);font:inherit;color:inherit;resize:vertical}
+.btn{display:block;width:100%;border:0;border-radius:12px;padding:14px;font-size:16px;font-weight:700;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.btn.sec{background:var(--surface-2);color:var(--accent);padding:10px;font-size:14px;border:1px dashed var(--border)}
+.warnbox{display:none;background:#fff4dc;color:#6b4a00;border:1px solid #f1d28a;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:10px}
+:root[data-theme="dark"] .warnbox{background:#3a2e10;color:#f4d58d;border-color:#6b5520}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .warnbox{background:#3a2e10;color:#f4d58d;border-color:#6b5520}}
+.warnbox.on{display:block}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--text-2);margin-left:6px;vertical-align:middle}
+
+/* product rows */
+.prow{display:grid;grid-template-columns:1fr auto;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)}
+.prow .pname{grid-column:1 / -1;width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);font-size:15px}
+.prow .pline{grid-column:1 / -1;display:flex;align-items:center;gap:8px}
+.prow .pamt{flex:1;min-width:0;text-align:right;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);font-size:16px;font-variant-numeric:tabular-nums}
+.prow .pdel{width:36px;height:36px;border:0;border-radius:10px;background:var(--surface-2);color:var(--text-2);font-size:18px;cursor:pointer;flex:none}
+.prow .pprice{grid-column:1 / -1;font-size:11px;color:var(--muted);margin-top:-4px}
+.empty{font-size:13px;color:var(--muted);padding:6px 0 12px}
+
+/* kpi */
+.kpi{margin-bottom:14px}
+.kpi:last-child{margin-bottom:0}
+.kpi-head{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;margin-bottom:4px}
+.kpi-head b{font-size:14px}
+.kpi-head .v{font-variant-numeric:tabular-nums;color:var(--text-2)}
+.bar{height:10px;background:var(--surface-2);border-radius:999px;overflow:hidden;position:relative}
+.bar i{display:block;height:100%;border-radius:999px;background:var(--accent)}
+.bar i.done{background:var(--good)}
+.bar .pace{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--text-2)}
+.forecast{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px;padding:10px 12px;background:var(--surface-2);border-radius:10px;font-size:13px}
+.st{font-weight:700}
+.st.ok{color:var(--good-ink)}
+.st.ng{color:var(--bad)}
+
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+@media(min-width:620px){.tiles{grid-template-columns:repeat(5,1fr)}}
+@media(max-width:619px){.tiles .tile:last-child{grid-column:span 2}}
+.tile{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px}
+.tile .t{font-size:12px;color:var(--text-2)}
+.tile .n{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;margin:2px 0}
+.tile .d{font-size:12px;font-variant-numeric:tabular-nums}
+.up{color:var(--good-ink)} .down{color:var(--bad)}
+
+/* summary cards (main analysis) */
+.sum-cards{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:12px}
+@media(min-width:720px){.sum-cards{grid-template-columns:repeat(3,1fr)}}
+.scard{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;cursor:pointer;text-align:left;width:100%;display:block;transition:border-color .15s, box-shadow .15s}
+.scard:hover{border-color:var(--accent);box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.scard .sh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.scard .sn{font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px}
+.scard .go{font-size:12px;color:var(--accent);font-weight:600}
+.scard .big{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.scard .mini{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin:8px 0 10px;font-size:12px;color:var(--text-2)}
+.scard .mini b{display:block;font-size:14px;color:var(--text);font-variant-numeric:tabular-nums}
+.scard .ach{display:flex;justify-content:space-between;font-size:12px;color:var(--text-2);margin-bottom:4px}
+.mixbar{display:flex;height:8px;border-radius:999px;overflow:hidden;margin-top:10px;gap:2px;background:var(--surface)}
+.mixbar span{display:block;height:100%}
+.mixlg{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:11px;color:var(--text-2);margin-top:6px}
+.mixlg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:baseline}
+
+.chart-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px}
+.chart-head h3{margin:0}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--text-2);margin-bottom:8px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.legend i.line{height:0;border-top:2px dashed var(--target);border-radius:0;width:14px}
+.cv{position:relative;height:220px}
+.pies{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:620px){.pies{grid-template-columns:repeat(3,1fr)}}
+.pie-wrap{display:flex;gap:12px;align-items:center}
+@media(min-width:620px){.pie-wrap{flex-direction:column;align-items:stretch}}
+.pie-cv{position:relative;width:130px;height:130px;flex:none;margin:0 auto}
+.pie-legend{flex:1;font-size:12px}
+.pie-legend div{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border)}
+.pie-legend div:last-child{border-bottom:0}
+.pie-legend i{width:10px;height:10px;border-radius:3px;flex:none}
+.pie-legend span{flex:1;color:var(--text-2)}
+.pie-legend b{font-variant-numeric:tabular-nums;font-weight:600}
+.pie-legend em{font-style:normal;color:var(--muted);width:42px;text-align:right;font-variant-numeric:tabular-nums}
+
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 6px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:11px;color:var(--text-2);font-weight:600}
+.tbl-scroll{overflow-x:auto;margin:0 -4px;padding:0 4px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:middle;flex:none}
+.inbar{display:inline-block;height:6px;border-radius:999px;background:var(--s4);vertical-align:middle;margin-right:6px}
+td.pn{white-space:normal;min-width:120px}
+
+/* full-screen detail sheet */
+.sheet{position:fixed;inset:0;z-index:40;background:var(--bg);overflow-y:auto;display:none;-webkit-overflow-scrolling:touch}
+.sheet.on{display:block}
+.sheet-head{position:sticky;top:0;z-index:2;background:var(--bg);border-bottom:1px solid var(--border)}
+.sheet-head .wrap{display:flex;align-items:center;gap:10px;height:54px}
+.sheet-head button{border:0;background:var(--surface-2);border-radius:999px;width:36px;height:36px;font-size:18px;cursor:pointer;flex:none}
+.sheet-head .tt{font-weight:700;font-size:16px;flex:1;display:flex;align-items:center;gap:6px}
+.sheet-head .pr{font-size:12px;color:var(--text-2)}
+.sheet-body{padding:12px 0 40px}
+
+/* target & settings */
+.tgt-grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:620px){.tgt-grid{grid-template-columns:1fr 1fr}}
+.field{display:flex;justify-content:space-between;align-items:center;padding:7px 0;gap:8px;border-bottom:1px solid var(--border)}
+.field:last-child{border-bottom:0}
+.field label{font-size:13px;color:var(--text-2)}
+.field input{width:120px;text-align:right;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);font-variant-numeric:tabular-nums}
+.field input[type=text].wide,.field input[type=email]{width:200px;text-align:left}
+.field input:disabled{opacity:.7}
+.opt{font-size:11px;color:var(--muted);margin:10px 0 2px}
+.sum-line{display:flex;justify-content:space-between;font-size:13px;padding:5px 0}
+.sum-line b{font-variant-numeric:tabular-nums}
+.check{font-size:12px;margin-top:8px;padding:8px 10px;border-radius:8px;background:var(--surface-2)}
+.lock{text-align:center;padding:40px 16px;color:var(--text-2)}
+.lock .ic{font-size:32px}
+.sw{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);gap:12px}
+.sw:last-child{border-bottom:0}
+.sw .l{font-size:14px}
+.sw .l small{display:block;font-size:11px;color:var(--muted)}
+.toggle{position:relative;width:46px;height:28px;flex:none}
+.toggle input{opacity:0;width:0;height:0}
+.toggle span{position:absolute;inset:0;background:var(--border);border-radius:999px;transition:.2s;cursor:pointer}
+.toggle span::after{content:"";position:absolute;left:3px;top:3px;width:22px;height:22px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.toggle input:checked+span{background:var(--good)}
+.toggle input:checked+span::after{transform:translateX(18px)}
+.mrow{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.mrow input{padding:7px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface-2);font-size:14px;min-width:0}
+.mrow .mn{flex:1}
+.mrow .mp{width:96px;text-align:right;font-variant-numeric:tabular-nums}
+.mrow button{width:32px;height:32px;border:0;border-radius:8px;background:var(--surface-2);color:var(--text-2);cursor:pointer;flex:none}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:50;padding:16px}
+.modal.on{display:flex}
+@media(min-width:620px){.modal{align-items:center}}
+.modal .box{background:var(--surface);border-radius:16px;max-width:520px;width:100%;max-height:85vh;overflow:auto;padding:18px}
+.mail{background:var(--surface-2);border-radius:10px;padding:12px;font-size:12.5px;white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;line-height:1.6;margin:10px 0 14px}
+.mail-meta{font-size:12px;color:var(--text-2)}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:13px;opacity:0;transition:.3s;pointer-events:none;z-index:60}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+
+
+
+<header class="top"><div class="wrap">
+  <div class="brand" id="brand">Salon</div>
+  <div class="who" id="who"></div>
+</div></header>
+
+<main class="wrap">
+
+<!-- ================= 入力 ================= -->
+<section class="page on" id="p-input">
+  <h2>日報入力 <span class="badge" id="editBadge" hidden>登録済み・上書き</span></h2>
+  <div class="top-fields">
+    <label>日付<input type="date" id="inDate"></label>
+    <label id="inStaffWrap">担当者<select id="inStaff"></select></label>
+  </div>
+
+  <div class="card">
+    <h3>売上・客数</h3>
+    <div id="fBasic"></div>
+    <div class="calc"><span class="hint">本日の客単価（自動計算）</span><b id="calcUnit">—</b></div>
+    <div class="calc" style="margin-top:6px"><span class="hint">新規比率</span><b id="calcNew" style="font-size:16px">—</b></div>
+  </div>
+
+  <div class="card">
+    <h3>メニュー（施術人数）</h3>
+    <div id="fMenu"></div>
+  </div>
+
+  <div class="card">
+    <h3>物販</h3>
+    <div id="prodList"></div>
+    <button class="btn sec" id="addProd" type="button">＋ 商品を追加</button>
+    <div class="calc"><span class="hint">物販合計（自動計算）</span><b id="calcProd" style="font-size:16px">¥0（0個）</b></div>
+    <p class="hint" style="margin:6px 0 0">商品名は候補から選べます。登録済みの商品は、個数に合わせて金額が自動で入ります。</p>
+  </div>
+  <datalist id="prodNames"></datalist>
+
+  <div class="card">
+    <h3>メモ</h3>
+    <textarea id="inMemo" placeholder="メモ（任意）"></textarea>
+  </div>
+
+  <div class="warnbox" id="warnbox"></div>
+  <button class="btn" id="submitBtn">✅ 今日の入力完了</button>
+  <p class="hint" style="text-align:center;margin-top:8px">送信すると登録アドレスにメールが届きます</p>
+</section>
+
+<!-- ================= 分析（一覧） ================= -->
+<section class="page" id="p-dash">
+  <div id="dashLocked" class="lock" hidden><div class="ic">🔒</div><p>分析画面の閲覧はオーナーにより制限されています</p></div>
+  <div id="dashBody">
+    <h2>分析</h2>
+    <div class="filters" id="mainFilters"></div>
+    <p class="hint" style="margin:-4px 0 10px">カードをタップすると、その人（または合計）の詳しい分析が開きます</p>
+    <div class="sum-cards" id="sumCards"></div>
+
+    <div class="card" id="compareCard">
+      <h3>担当者比較</h3>
+      <div class="tbl-scroll"><table id="tblCompare"></table></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 目標 ================= -->
+<section class="page" id="p-target">
+  <div id="tgtLocked" class="lock" hidden><div class="ic">🔒</div><p>目標の閲覧はオーナーにより制限されています</p></div>
+  <div id="tgtBody">
+    <h2>月間目標（KPI） <span class="badge" id="tgtRO" hidden>閲覧のみ</span></h2>
+    <div class="top-fields"><label>対象月<select id="tgtMonth"></select></label></div>
+    <div class="tgt-grid" id="tgtGrid"></div>
+    <div class="card" id="tgtTotal"></div>
+    <button class="btn" id="tgtSave">保存</button>
+  </div>
+</section>
+
+<!-- ================= 設定 ================= -->
+<section class="page" id="p-set">
+  <h2>設定（管理者のみ）</h2>
+  <div class="card">
+    <h3>サロン情報</h3>
+    <div class="field"><label>サロン名</label><input type="text" class="wide" id="setSalon"></div>
+    <div class="field"><label>オーナー名</label><input type="text" class="wide" id="setN1"></div>
+    <div class="field" hidden><label>担当者B の名前</label><input type="text" class="wide" id="setN2"></div>
+    <div class="field"><label>通知メール（カンマ区切り）</label><input type="email" id="setMail" multiple></div>
+  </div>
+  <div class="card">
+    <h3>商品マスタ（物販）</h3>
+    <p class="hint" style="margin:-4px 0 6px">ここに登録した商品は入力画面の候補に出て、金額が自動で入ります。</p>
+    <div id="masterList"></div>
+    <button class="btn sec" id="addMaster" type="button" style="margin-top:10px">＋ 商品を登録</button>
+  </div>
+  <div class="card" hidden><h3 id="permH1"></h3><div id="perm1"></div></div>
+  <div class="card" hidden><h3 id="permH2"></h3><div id="perm2"></div></div>
+  <p class="hint">本番版では、管理者・担当者それぞれにパスワードを設定してログインします。変更はスプレッドシートの「設定」シートに保存されます。</p>
+</section>
+
+</main>
+
+<!-- ================= 詳細分析（全画面モーダル） ================= -->
+<div class="sheet" id="detail" role="dialog" aria-modal="true" aria-labelledby="dTitle">
+  <div class="sheet-head"><div class="wrap">
+    <button id="dClose" aria-label="閉じる">←</button>
+    <div class="tt" id="dTitle"></div>
+  </div></div>
+  <div class="wrap sheet-body">
+    <div class="filters">
+      <div class="seg" id="scopeSeg"></div>
+      <div id="detailFilters" class="filters" style="margin:0"></div>
+    </div>
+
+    <div class="card" id="kpiCard">
+      <h3 id="kpiTitle"></h3>
+      <div id="kpiBody"></div>
+    </div>
+
+    <div class="tiles" id="tiles"></div>
+
+    <div class="card">
+      <div class="chart-head"><h3>売上推移</h3><div class="seg" style="flex:none" data-gran></div></div>
+      <div class="legend" id="lgSales"></div>
+      <div class="cv"><canvas id="chSales"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="chart-head"><h3>客単価推移</h3><div class="seg" style="flex:none" data-gran></div></div>
+      <div class="legend" id="lgUnit"></div>
+      <div class="cv"><canvas id="chUnit"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="chart-head"><h3>客数推移（新規・再来）</h3><div class="seg" style="flex:none" data-gran></div></div>
+      <div class="legend" id="lgCust"></div>
+      <div class="cv"><canvas id="chCust"></canvas></div>
+    </div>
+
+    <div class="card">
+      <h3>構成比</h3>
+      <div class="pies">
+        <div><div class="hint" style="margin-bottom:6px">メニュー構成</div><div class="pie-wrap"><div class="pie-cv"><canvas id="pMenu"></canvas></div><div class="pie-legend" id="plMenu"></div></div></div>
+        <div><div class="hint" style="margin-bottom:6px">カラー内訳</div><div class="pie-wrap"><div class="pie-cv"><canvas id="pColor"></canvas></div><div class="pie-legend" id="plColor"></div></div></div>
+        <div><div class="hint" style="margin-bottom:6px">新規・再来</div><div class="pie-wrap"><div class="pie-cv"><canvas id="pNew"></canvas></div><div class="pie-legend" id="plNew"></div></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>施術率の推移（月ごと）</h3>
+      <div class="legend" id="lgRate"></div>
+      <div class="cv"><canvas id="chRate"></canvas></div>
+      <p class="hint" style="margin:8px 0 0">施術率＝そのメニューを受けたお客様 ÷ 客数。1人が複数メニューを受けるため、合計は100%を超えます。</p>
+    </div>
+
+    <div class="card">
+      <h3>物販 商品別ランキング</h3>
+      <div class="tbl-scroll"><table id="tblProd"></table></div>
+    </div>
+
+    <div class="card">
+      <h3>メニュー集計表</h3>
+      <div class="tbl-scroll"><table id="tblMenu"></table></div>
+      <p class="hint" style="margin:8px 0 0" id="prevNote"></p>
+    </div>
+  </div>
+</div>
+
+<nav class="tabs"><div class="wrap">
+  <button data-tab="p-input" class="on"><span class="ic">✏️</span>入力</button>
+  <button data-tab="p-dash"><span class="ic">📊</span>分析</button>
+  <button data-tab="p-target"><span class="ic">🎯</span>目標</button>
+  <button data-tab="p-set"><span class="ic">⚙️</span>設定</button>
+</div></nav>
+
+<div class="modal" id="mailModal"><div class="box">
+  <h3 style="margin:0">📧 通知メールを送信しました</h3>
+  <div class="mail-meta" id="mailTo"></div>
+  <div class="mail" id="mailBody"></div>
+  <button class="btn" id="mailClose">閉じる</button>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="../common/lumi-data.js"></script>
+<script>
+window.DEMO = {
+  id: "kpi", app: "KPI管理",
+  pain: "月末に通帳を見るまで、今月うまくいっているのかわからない。客単価やカラー率など、何を伸ばせばいいのかが見えない。",
+  steps: [
+    { t: "「入力」で今日の日報を入れてみる", d: "売上・客数・メニューの人数を＋−で入れるだけ。客単価は自動で計算されます。" },
+    { t: "「今日の入力完了」を押す", d: "登録先にメールが届きます（デモでは届くメールの中身を表示）。目標の進み具合と月末の着地予測もメールに入ります。" },
+    { t: "「分析」でカードをタップ", d: "目標達成率・月末着地予測・売上／客単価の推移・メニュー構成が1画面で見られます。" },
+    { t: "期間を「3ヶ月」に切り替える", d: "カラー率やトリートメント付帯率の推移、前の期間との比較が出ます。ディーラーさんとの打ち合わせに使えます。" },
+    { t: "「目標」で月の目標を入れる", d: "売上・客数・客単価を入れると、ずれていないかも自動でチェックします。" }
+  ]
+};
+</script>
+<script src="../common/demo-kit.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script>
+(function(){
+"use strict";
+
+/* ---------------- 基本設定 ---------------- */
+const L = window.LUMI;
+const TODAY = L.TODAY;
+const STAFF = ["s1"];   // 一人サロン版
+const state = {
+  salon: L.salon.name,
+  names: { s1: L.salon.owner },
+  mails: "lumi-owner@example.com, dealer@example.com",
+  perm: { s1: { dash:true, other:true, total:true, target:true } },
+  products: L.products.map(p => ({ name:p.name, price:p.price })),
+  role: "admin",
+  tab: "p-input",
+  scope: "s1",
+  period: "this",
+  gran: "day",
+  customFrom: L.util.addMonths(TODAY,-1), customTo: TODAY,
+  records: [],
+  targets: {}
+};
+
+const MENU = [
+  { k:"color",    label:"カラー" },
+  { k:"perm",     label:"パーマ" },
+  { k:"tr",       label:"トリートメント" },
+  { k:"straight", label:"ストレート" },
+  { k:"shuku",    label:"縮毛矯正" }
+];
+const COUNT_KEYS = ["cust","newc","color","bleach","wcolor","perm","tr","straight","shuku","prodQty"];
+
+/* ---------------- ユーティリティ ---------------- */
+const $ = id => document.getElementById(id);
+const fmt = n => Math.round(n).toLocaleString("ja-JP");
+const yen = n => "¥" + fmt(n);
+const pct = (n, d=1) => (isFinite(n) ? (n*100).toFixed(d) : "0.0") + "%";
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const pad = n => String(n).padStart(2,"0");
+const toISO = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const parse = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const ym = s => s.slice(0,7);
+const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate()+n); return toISO(d); };
+const monthStart = s => s.slice(0,8)+"01";
+const monthEnd = s => { const d = parse(monthStart(s)); d.setMonth(d.getMonth()+1); d.setDate(0); return toISO(d); };
+const addMonths = (s, n) => { const d = parse(monthStart(s)); d.setMonth(d.getMonth()+n); return toISO(d); };
+const daysBetween = (a, b) => Math.round((parse(b)-parse(a))/86400000)+1;
+const nm = id => state.names[id];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const num = v => Math.max(0, Number(String(v).replace(/[^\d]/g,"")) || 0);
+const staffColor = s => s==="s1" ? css("--s1") : css("--s2");
+let toastT;
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("on"),1800); }
+
+/* ---------------- サンプルデータ生成 ---------------- */
+function seeded(seed){ return function(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function genSample(){
+  // hair salon Lumi（架空）の来店実績から、日報を作ります → ../common/lumi-data.js
+  state.records = L.dayStats(L.visits).map(r => Object.assign({ staff:"s1", memo:"" }, r));
+  const months = new Set(state.records.map(r => r.date.slice(0,7)));
+  for (let i=0;i<=3;i++) months.add(L.util.addMonths(TODAY,i).slice(0,7));
+  months.forEach(m => { const t = L.targetFor(m); state.targets[m] = { s1: { sales:t.sales, cust:t.cust, unit:t.unit, days:t.days, newc:t.newc, colorRate:t.colorRate, trRate:t.trRate } }; });
+}
+
+/* ---------------- 集計 ---------------- */
+function scopeStaff(scope){ return scope==="total" ? STAFF : [scope]; }
+function scopeName(scope){ return scope==="total" ? "サロン合計" : STAFF.length===1 ? state.salon : nm(scope); }
+function filterRecs(from, to, staffList){ return state.records.filter(r => r.date>=from && r.date<=to && staffList.includes(r.staff)); }
+function agg(recs){
+  const a = { sales:0, prodSales:0, days:0, items:{} }; COUNT_KEYS.forEach(k=>a[k]=0);
+  const ds = new Set();
+  for (const r of recs){
+    a.sales+=r.sales; a.prodSales+=r.prodSales; COUNT_KEYS.forEach(k=>a[k]+=r[k]); ds.add(r.date);
+    (r.items||[]).forEach(it => { const x = a.items[it.name] || (a.items[it.name] = { qty:0, amount:0 }); x.qty+=it.qty; x.amount+=it.amount; });
+  }
+  a.days = ds.size;
+  a.unit = a.cust ? a.sales/a.cust : 0;
+  a.newRate = a.cust ? a.newc/a.cust : 0;
+  a.prodRate = a.sales ? a.prodSales/a.sales : 0;
+  return a;
+}
+function targetFor(month, staffList){
+  const m = state.targets[month]; if (!m) return null;
+  const t = { sales:0, cust:0, newc:0, days:0 };
+  for (const s of staffList){ const x = m[s]; if(!x) continue;
+    t.sales+=Number(x.sales)||0; t.cust+=Number(x.cust)||0; t.newc+=Number(x.newc)||0; t.days=Math.max(t.days, Number(x.days)||0);
+  }
+  t.unit = t.cust ? t.sales/t.cust : 0;
+  return t.sales||t.cust ? t : null;
+}
+function periodRange(){
+  const p = state.period;
+  if (p==="this") return { from: monthStart(TODAY), to: TODAY, label:"今月" };
+  if (p==="last") { const s = addMonths(TODAY,-1); return { from:s, to:monthEnd(s), label:"先月" }; }
+  if (p==="3m") return { from: addMonths(TODAY,-2), to: TODAY, label:"直近3ヶ月" };
+  let f = state.customFrom, t = state.customTo; if (f>t) [f,t]=[t,f];
+  return { from:f, to:t, label:"指定期間" };
+}
+function prevRange(r){
+  const p = state.period;
+  if (p==="this"){ const s = addMonths(TODAY,-1); const len = daysBetween(r.from, r.to); return { from:s, to:addDays(s, len-1), label:"先月同期間" }; }
+  if (p==="last"){ const s = addMonths(r.from,-1); return { from:s, to:monthEnd(s), label:"前月" }; }
+  if (p==="3m"){ const s = addMonths(r.from,-3); const e = addDays(addMonths(r.to,-3), daysBetween(monthStart(r.to), r.to)-1); return { from:s, to:e, label:"その前の3ヶ月（同日数）" }; }
+  const len = daysBetween(r.from, r.to); return { from:addDays(r.from,-len), to:addDays(r.from,-1), label:"直前の同日数" };
+}
+function buckets(r){
+  const out = [];
+  if (state.gran==="day"){ let d=r.from; while(d<=r.to){ out.push({ key:d, from:d, to:d, label:(+d.slice(5,7))+"/"+(+d.slice(8)), month:ym(d) }); d=addDays(d,1); } }
+  else { let m=monthStart(r.from); while(m<=r.to){ const e=monthEnd(m); out.push({ key:ym(m), from: m<r.from?r.from:m, to: e>r.to?r.to:e, label:(+m.slice(5,7))+"月", month:ym(m) }); m=addMonths(m,1); } }
+  return out;
+}
+const fmtRange = r => r.from.replace(/-/g,"/")+"〜"+r.to.replace(/-/g,"/");
+
+/* ---------------- 権限 ---------------- */
+function can(what){ if (state.role==="admin") return true; return !!state.perm[state.role][what]; }
+function allowedScopes(){ return ["s1"]; }
+
+/* ---------------- 入力フォーム ---------------- */
+const F_BASIC = [
+  { k:"sales", label:"総売上", money:true },
+  { k:"cust",  label:"客数" },
+  { k:"newc",  label:"うち新規", sub:true }
+];
+const F_MENU = [
+  { k:"color", label:"カラー" }, { k:"bleach", label:"ブリーチ", sub:true }, { k:"wcolor", label:"ダブルカラー", sub:true },
+  { k:"perm", label:"パーマ" }, { k:"tr", label:"トリートメント" }, { k:"straight", label:"ストレート" }, { k:"shuku", label:"縮毛矯正" }
+];
+const stepperHTML = (attrs, label, val) => `<span class="stepper"><button type="button" data-d="-1" aria-label="${label}を減らす">−</button><input type="text" inputmode="numeric" ${attrs} value="${val}"><button type="button" data-d="1" aria-label="${label}を増やす">＋</button></span>`;
+function fieldHTML(f){
+  if (f.money) return `<div class="row${f.sub?' sub':''}"><span class="lbl">${f.label}</span><span class="money"><input type="text" inputmode="numeric" id="in_${f.k}" data-money value="0"><span class="unit">円</span></span></div>`;
+  return `<div class="row${f.sub?' sub':''}"><span class="lbl">${f.label}</span><span style="display:flex;align-items:center;gap:6px">${stepperHTML(`id="in_${f.k}"`, f.label, 0)}<span class="unit">人</span></span></div>`;
+}
+function bindNumber(el, onChange){
+  el.addEventListener("input", onChange);
+  el.addEventListener("focus", () => { if (num(el.value)===0) el.value=""; });
+  el.addEventListener("blur", () => { el.value = el.hasAttribute("data-money") ? fmt(num(el.value)) : num(el.value); onChange(); });
+}
+function bindStepper(wrap, onChange){
+  wrap.querySelectorAll(".stepper button").forEach(b => b.addEventListener("click", () => {
+    const el = b.parentElement.querySelector("input"); el.value = Math.max(0, num(el.value) + Number(b.dataset.d)); onChange(el);
+  }));
+}
+function buildForm(){
+  $("fBasic").innerHTML = F_BASIC.map(fieldHTML).join("");
+  $("fMenu").innerHTML = F_MENU.map(fieldHTML).join("");
+  [$("fBasic"), $("fMenu")].forEach(w => { bindStepper(w, onFormChange); w.querySelectorAll("input").forEach(el => bindNumber(el, onFormChange)); });
+  $("addProd").onclick = () => { addProdRow(); const rows = $("prodList").querySelectorAll(".pname"); rows[rows.length-1].focus(); };
+}
+function refreshDatalist(){ $("prodNames").innerHTML = state.products.map(p=>`<option value="${esc(p.name)}">${yen(p.price)}</option>`).join(""); }
+const masterPrice = name => { const p = state.products.find(x=>x.name===name.trim()); return p ? p.price : null; };
+
+function addProdRow(item){
+  item = item || { name:"", qty:1, amount:0 };
+  const row = document.createElement("div");
+  row.className = "prow";
+  row.innerHTML = `<input class="pname" list="prodNames" placeholder="商品名（例：ヘアオイル）" value="${esc(item.name)}">
+    <div class="pline">${stepperHTML('class="pqty"', "個数", item.qty)}<span class="unit">個</span><input class="pamt" type="text" inputmode="numeric" data-money value="${fmt(item.amount)}"><span class="unit">円</span><button type="button" class="pdel" aria-label="この商品を削除">×</button></div>
+    <div class="pprice"></div>`;
+  $("prodList").appendChild(row);
+  const nameEl = row.querySelector(".pname"), qtyEl = row.querySelector(".pqty"), amtEl = row.querySelector(".pamt");
+  row.dataset.manual = item.name && masterPrice(item.name)!=null && masterPrice(item.name)*item.qty!==item.amount ? "1" : "";
+  const autoPrice = () => {
+    const p = masterPrice(nameEl.value);
+    row.querySelector(".pprice").textContent = p!=null ? `登録単価 ${yen(p)}${row.dataset.manual?"（金額は手入力）":""}` : (nameEl.value.trim() ? "未登録の商品です（金額を入力してください）" : "");
+    if (p!=null && !row.dataset.manual) amtEl.value = fmt(p * Math.max(1, num(qtyEl.value)));
+    onFormChange();
+  };
+  nameEl.addEventListener("input", () => { row.dataset.manual=""; autoPrice(); });
+  bindStepper(row, autoPrice);
+  bindNumber(qtyEl, autoPrice);
+  bindNumber(amtEl, onFormChange);
+  amtEl.addEventListener("input", () => { row.dataset.manual = "1"; });
+  row.querySelector(".pdel").onclick = () => { row.remove(); renderProdEmpty(); onFormChange(); };
+  autoPrice();
+  renderProdEmpty();
+}
+function renderProdEmpty(){
+  let e = $("prodEmpty");
+  const has = $("prodList").querySelector(".prow");
+  if (!has && !e){ e = document.createElement("div"); e.id="prodEmpty"; e.className="empty"; e.textContent="物販なし"; $("prodList").appendChild(e); }
+  if (has && e) e.remove();
+}
+function readItems(){
+  return [...$("prodList").querySelectorAll(".prow")].map(r => ({ name:r.querySelector(".pname").value.trim(), qty:num(r.querySelector(".pqty").value), amount:num(r.querySelector(".pamt").value) }))
+    .filter(x => x.name || x.amount);
+}
+function readForm(){
+  const o={}; [...F_BASIC,...F_MENU].forEach(f=>o[f.k]=num($("in_"+f.k).value));
+  o.items = readItems();
+  o.prodSales = o.items.reduce((a,x)=>a+x.amount,0);
+  o.prodQty = o.items.reduce((a,x)=>a+x.qty,0);
+  o.memo=$("inMemo").value; return o;
+}
+function validate(o){
+  const w=[];
+  if (o.cust===0) w.push("客数が0人です");
+  if (o.sales===0) w.push("総売上が0円です");
+  if (o.newc>o.cust) w.push("新規が客数より多くなっています");
+  MENU.forEach(m => { if (o[m.k]>o.cust) w.push(m.label+"が客数より多くなっています"); });
+  if (o.bleach+o.wcolor>o.color) w.push("ブリーチ＋ダブルカラーがカラー人数より多くなっています");
+  if (o.items.some(x=>!x.name)) w.push("商品名が入っていない物販があります");
+  if (o.items.some(x=>x.name && !x.amount)) w.push("金額が0円の物販があります");
+  if (o.prodSales>o.sales) w.push("物販売上が総売上より多くなっています");
+  return w;
+}
+function onFormChange(){
+  const o = readForm();
+  $("calcUnit").textContent = o.cust ? yen(o.sales/o.cust) : "—";
+  $("calcNew").textContent = o.cust ? pct(o.newc/o.cust)+"（"+o.newc+"/"+o.cust+"人）" : "—";
+  $("calcProd").textContent = yen(o.prodSales)+"（"+o.prodQty+"個）";
+  const w = validate(o).filter(x=>!/0(人|円)です/.test(x));
+  $("warnbox").innerHTML = w.map(x=>"⚠️ "+x).join("<br>");
+  $("warnbox").classList.toggle("on", w.length>0);
+}
+function inputStaff(){ return state.role==="admin" ? $("inStaff").value : state.role; }
+function loadForm(){
+  const s = inputStaff(), d = $("inDate").value;
+  const r = state.records.find(x=>x.date===d && x.staff===s);
+  [...F_BASIC,...F_MENU].forEach(f => { const v = r ? r[f.k] : 0; $("in_"+f.k).value = f.money ? fmt(v) : v; });
+  $("prodList").innerHTML = "";
+  (r ? r.items : []).forEach(it => addProdRow(Object.assign({}, it)));
+  renderProdEmpty();
+  $("inMemo").value = r ? r.memo : "";
+  $("editBadge").hidden = !r;
+  onFormChange();
+}
+function submit(){
+  const o = readForm(), w = validate(o);
+  if (w.length){ $("warnbox").innerHTML = w.map(x=>"⚠️ "+x).join("<br>"); $("warnbox").classList.add("on"); toast("入力内容を確認してください"); return; }
+  const s = inputStaff(), d = $("inDate").value;
+  const rec = Object.assign({ date:d, staff:s }, o);
+  const i = state.records.findIndex(x=>x.date===d && x.staff===s);
+  if (i>=0) state.records[i]=rec; else state.records.push(rec);
+  state.records.sort((a,b)=>a.date<b.date?-1:1);
+  // 新しい商品名は候補に追加（金額 ÷ 個数を単価として登録）
+  o.items.forEach(it => { if (it.name && masterPrice(it.name)==null && it.qty) state.products.push({ name:it.name, price:Math.round(it.amount/it.qty) }); });
+  refreshDatalist();
+  $("editBadge").hidden = false;
+  showMail(rec);
+}
+function showMail(r){
+  const mStart = monthStart(r.date), mE = r.date;
+  const mine = agg(filterRecs(mStart, mE, [r.staff]));
+  const tot  = agg(filterRecs(mStart, mE, STAFF));
+  const tMine = targetFor(ym(r.date), [r.staff]), tTot = targetFor(ym(r.date), STAFF);
+  const line = (lbl, a, t, f) => t ? `${lbl}  ${f(a)} / ${f(t)}（${pct(a/t)}）${a>=t?" ✅":""}` : `${lbl}  ${f(a)}`;
+  const fc = (a, t) => { if(!t || !a.days) return ""; const f = a.sales/a.days*t.days; return `月末着地予測：${yen(f)}（${f>=t.sales?"達成見込み ✅":"目標まであと "+yen(t.sales-f)}）`; };
+  const menuLine = ["color","perm","tr","straight","shuku"].map(k => { const m=MENU.find(x=>x.k===k); return `${m.label} ${r[k]}人(${pct(r.cust?r[k]/r.cust:0,0)})`; });
+  const prodLines = r.items.length ? r.items.map(it => `  ・${it.name} ×${it.qty}　${yen(it.amount)}`).join("\n") : "  なし";
+  const body =
+`件名：【${state.salon}】${+r.date.slice(5,7)}/${+r.date.slice(8)} 日報が登録されました
+
+■本日
+総売上 ${yen(r.sales)}／客数 ${r.cust}人
+新規 ${r.newc}人（${pct(r.cust?r.newc/r.cust:0,0)}）
+客単価 ${yen(r.cust?r.sales/r.cust:0)}
+${menuLine.slice(0,2).join("／")}
+  └ ブリーチ ${r.bleach}人／Wカラー ${r.wcolor}人
+${menuLine.slice(2).join("／")}
+
+■物販 ${yen(r.prodSales)}（${r.prodQty}個・売上の${pct(r.sales?r.prodSales/r.sales:0)}）
+${prodLines}
+${r.memo?"\nメモ："+r.memo+"\n":""}
+■今月の進捗
+${line("売上  ", mine.sales, tMine&&tMine.sales, yen)}
+${line("客数  ", mine.cust, tMine&&tMine.cust, v=>fmt(v)+"人")}
+${line("客単価", mine.unit, tMine&&tMine.unit, yen)}
+${fc(mine, tMine)}`;
+  $("mailTo").textContent = "宛先：" + state.mails;
+  $("mailBody").textContent = body;
+  $("mailModal").classList.add("on");
+}
+
+/* ---------------- 期間コントロール（一覧・詳細で共通） ---------------- */
+function renderPeriodControls(containerId, onChange){
+  const c = $(containerId);
+  c.innerHTML = `<div class="seg">${[["this","今月"],["last","先月"],["3m","3ヶ月"],["custom","期間指定"]].map(([k,l])=>`<button data-p="${k}" class="${state.period===k?'on':''}">${l}</button>`).join("")}</div>
+    <div class="custom-range ${state.period==='custom'?'on':''}"><input type="date" data-c="from" value="${state.customFrom}" max="${TODAY}"><span>〜</span><input type="date" data-c="to" value="${state.customTo}" max="${TODAY}"></div>`;
+  c.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { state.period = b.dataset.p; state.gran = state.period==="3m" ? "month" : "day"; onChange(); });
+  c.querySelectorAll("[data-c]").forEach(el => el.onchange = () => { if (el.dataset.c==="from") state.customFrom = el.value; else state.customTo = el.value; onChange(); });
+}
+
+/* ---------------- 分析：一覧（カード） ---------------- */
+function renderMain(){
+  const locked = !can("dash");
+  $("dashLocked").hidden = !locked; $("dashBody").hidden = locked;
+  if (locked) return;
+  renderPeriodControls("mainFilters", renderMain);
+  const R = periodRange(), P = prevRange(R);
+  const C = [css("--s1"), css("--s2"), css("--s3"), css("--s4"), css("--s5")];
+
+  $("sumCards").innerHTML = allowedScopes().map(sc => {
+    const sl = scopeStaff(sc), a = agg(filterRecs(R.from, R.to, sl)), pv = agg(filterRecs(P.from, P.to, sl));
+    const kMonth = ym(R.to), t = can("target") ? targetFor(kMonth, sl) : null;
+    const ka = agg(filterRecs(monthStart(R.to), R.to, sl));
+    const d = pv.sales ? a.sales/pv.sales-1 : null;
+    const menuTotal = MENU.reduce((s,m)=>s+a[m.k],0) || 1;
+    const dot = sc==="total" ? "" : `<span class="dot" style="background:${staffColor(sc)}"></span>`;
+    return `<button class="scard" data-scope="${sc}">
+      <div class="sh"><span class="sn">${dot}${scopeName(sc)}</span><span class="go">詳しく見る ›</span></div>
+      <div class="hint">${R.label}の総売上</div>
+      <div class="big">${yen(a.sales)} ${d==null?"":`<span class="${d>=0?'up':'down'}" style="font-size:12px;font-weight:600">${d>=0?'▲':'▼'}${Math.abs(d*100).toFixed(1)}%</span>`}</div>
+      <div class="mini"><span>客数<b>${fmt(a.cust)}人</b></span><span>客単価<b>${yen(a.unit)}</b></span><span>新規率<b>${pct(a.newRate)}</b></span></div>
+      ${t ? `<div class="ach"><span>${+kMonth.slice(5)}月 売上目標</span><span><b class="st ${ka.sales>=t.sales?'ok':''}">${pct(ka.sales/t.sales,0)}</b>（${yen(ka.sales)} / ${yen(t.sales)}）</span></div>
+      <div class="bar"><i class="${ka.sales>=t.sales?'done':''}" style="width:${Math.min(100, ka.sales/t.sales*100)}%"></i></div>` : ""}
+      <div class="hint" style="margin-top:10px">メニュー構成</div><div class="mixbar" style="margin-top:4px" aria-hidden="true">${MENU.map((m,i)=>`<span style="width:${a[m.k]/menuTotal*100}%;background:${C[i]}"></span>`).join("")}</div>
+      <div class="mixlg">${MENU.map((m,i)=>`<span><i style="background:${C[i]}"></i>${m.label} ${pct(a[m.k]/menuTotal,0)}</span>`).join("")}</div>
+    </button>`;
+  }).join("");
+  $("sumCards").querySelectorAll(".scard").forEach(b => b.onclick = () => openDetail(b.dataset.scope));
+
+  const showCompare = STAFF.length > 1;
+  $("compareCard").hidden = !showCompare;
+  if (showCompare){
+    const cur = agg(filterRecs(R.from, R.to, STAFF));
+    const rows = STAFF.map(s => [s, agg(filterRecs(R.from, R.to, [s]))]).concat([["total", cur]]);
+    $("tblCompare").innerHTML = `<tr><th>担当</th><th>売上</th><th>客数</th><th>客単価</th><th>新規率</th><th>カラー率</th><th>TR率</th><th>物販率</th></tr>` +
+      rows.map(([s,a]) => `<tr${s==="total"?' style="font-weight:700"':''}><td>${s==="total"?"合計":`<span class="dot" style="background:${staffColor(s)}"></span>${nm(s)}`}</td><td>${yen(a.sales)}</td><td>${fmt(a.cust)}</td><td>${yen(a.unit)}</td><td>${pct(a.newRate)}</td><td>${pct(a.cust?a.color/a.cust:0)}</td><td>${pct(a.cust?a.tr/a.cust:0)}</td><td>${pct(a.prodRate)}</td></tr>`).join("");
+  }
+}
+
+/* ---------------- 分析：詳細（全画面モーダル） ---------------- */
+function openDetail(scope){
+  state.scope = scope;
+  $("detail").classList.add("on"); $("detail").scrollTop = 0;
+  document.body.classList.add("lock-scroll");
+  renderDetail();
+}
+function closeDetail(){
+  $("detail").classList.remove("on");
+  document.body.classList.remove("lock-scroll");
+  renderMain();
+}
+
+const charts = {};
+function mkChart(id, cfg){ if (charts[id]) charts[id].destroy(); charts[id] = new Chart($(id), cfg); }
+function baseOpts(yFmt){
+  const grid = css("--grid"), tx = css("--text-2");
+  return {
+    responsive:true, maintainAspectRatio:false, animation:{duration:250},
+    interaction:{ mode:"index", intersect:false },
+    plugins:{ legend:{display:false}, tooltip:{ backgroundColor:css("--text"), titleColor:css("--bg"), bodyColor:css("--bg"), footerColor:css("--bg"), padding:10, cornerRadius:8, boxPadding:4, usePointStyle:true,
+      callbacks:{ label: c => " "+c.dataset.label+"："+yFmt(c.parsed.y) } } },
+    scales:{
+      x:{ stacked:false, grid:{display:false}, ticks:{ color:tx, font:{size:10}, maxRotation:0, autoSkip:true, autoSkipPadding:8 }, border:{color:grid} },
+      y:{ beginAtZero:true, grid:{ color:grid }, border:{display:false}, ticks:{ color:tx, font:{size:10}, maxTicksLimit:5, callback: v => yFmt(v, true) } }
+    }
+  };
+}
+const yenShort = (v, axis) => axis ? (v>=10000 ? (v/10000).toLocaleString("ja-JP",{maximumFractionDigits:1})+"万" : fmt(v)) : yen(v);
+function legendHTML(items){ return items.map(i => i.line ? `<span><i class="line"></i>${i.label}</span>` : `<span><i style="background:${i.color}"></i>${i.label}</span>`).join(""); }
+function barDS(label, data, color, stacked){
+  return { type:"bar", label, data, backgroundColor:color, borderRadius: stacked?{topLeft:4,topRight:4}:4, borderSkipped:"start",
+    borderColor: css("--surface"), borderWidth: stacked?{top:2}:0, maxBarThickness: 28, categoryPercentage:.8, barPercentage:.9, order:2 };
+}
+function targetDS(label, data){
+  return { type:"line", label, data, borderColor:css("--target"), borderWidth:2, borderDash:[5,4], pointRadius:0, pointHoverRadius:4, stepped: state.gran==="day" ? false : "middle", spanGaps:true, fill:false, order:1 };
+}
+
+function renderDetail(){
+  const scopes = allowedScopes();
+  if (!scopes.includes(state.scope)) state.scope = scopes[0];
+  const sc = state.scope, sl = scopeStaff(sc);
+  $("dTitle").innerHTML = (sc==="total" ? "" : `<span class="dot" style="background:${staffColor(sc)}"></span>`) + scopeName(sc) + " の分析";
+  $("scopeSeg").innerHTML = scopes.map(s => `<button data-s="${s}" class="${s===sc?'on':''}">${scopeName(s)}</button>`).join("");
+  $("scopeSeg").style.display = scopes.length>1 ? "" : "none";
+  $("scopeSeg").querySelectorAll("button").forEach(b => b.onclick = () => { state.scope=b.dataset.s; renderDetail(); });
+  renderPeriodControls("detailFilters", renderDetail);
+  document.querySelectorAll("[data-gran]").forEach(el => {
+    el.innerHTML = `<button data-g="day" class="${state.gran==='day'?'on':''}">日別</button><button data-g="month" class="${state.gran==='month'?'on':''}">月別</button>`;
+    el.querySelectorAll("button").forEach(b => b.onclick = () => { state.gran=b.dataset.g; renderDetail(); });
+  });
+
+  const R = periodRange(), P = prevRange(R);
+  const cur = agg(filterRecs(R.from, R.to, sl)), prv = agg(filterRecs(P.from, P.to, sl));
+  const C = [css("--s1"), css("--s2"), css("--s3"), css("--s4"), css("--s5")];
+
+  /* KPI */
+  const kMonth = ym(R.to);
+  const kA = agg(filterRecs(monthStart(R.to), R.to, sl));
+  const kT = can("target") ? targetFor(kMonth, sl) : null;
+  $("kpiCard").hidden = !kT;
+  if (kT){
+    const isCur = kMonth===ym(TODAY);
+    $("kpiTitle").textContent = (+kMonth.slice(5))+"月の目標達成状況";
+    const elapsed = isCur ? kA.days : kT.days;
+    const pace = kT.days ? Math.min(1, elapsed/kT.days) : 0;
+    const kpiRow = (lbl, a, t, f, useP) => {
+      const r = t ? a/t : 0;
+      return `<div class="kpi"><div class="kpi-head"><b>${lbl}</b><span class="v">${f(a)} / ${f(t)}　<b class="st ${r>=(useP?pace:1)?'ok':'ng'}">${pct(r,0)}</b></span></div>
+      <div class="bar"><i class="${r>=1?'done':''}" style="width:${Math.min(100,r*100)}%"></i>${useP&&isCur?`<span class="pace" style="left:${pace*100}%"></span>`:""}</div></div>`;
+    };
+    let html = kpiRow("売上", kA.sales, kT.sales, yen, true) + kpiRow("客数", kA.cust, kT.cust, v=>fmt(v)+"人", true) + kpiRow("客単価", kA.unit, kT.unit, yen, false);
+    if (kT.newc) html += kpiRow("新規数", kA.newc, kT.newc, v=>fmt(v)+"人", true);
+    if (isCur && kA.days){
+      const f = kA.sales/kA.days*kT.days, ok = f>=kT.sales;
+      html += `<div class="forecast"><span>月末着地予測</span><b style="font-variant-numeric:tabular-nums">${yen(f)}</b><span class="st ${ok?'ok':'ng'}">${ok?"✅ 達成見込み":"⚠️ あと "+yen(kT.sales-f)}</span></div>
+      <p class="hint" style="margin:6px 0 0">縦線＝今日時点で達成しておきたい目安（営業 ${kA.days}/${kT.days} 日）。着地予測＝今月の1日平均 × 目標営業日数</p>`;
+    } else if (!isCur){
+      const ok = kA.sales>=kT.sales;
+      html += `<div class="forecast"><span>結果</span><span class="st ${ok?'ok':'ng'}">${ok?"✅ 売上目標達成":"売上目標まで "+yen(kT.sales-kA.sales)+" 不足"}</span></div>`;
+    }
+    $("kpiBody").innerHTML = html;
+  }
+
+  /* Tiles */
+  const delta = (a, b, isRate) => {
+    if (!b) return `<span class="muted">前期比 —</span>`;
+    if (isRate){ const d=(a-b)*100; return `<span class="${d>=0?'up':'down'}">${d>=0?'▲':'▼'} ${Math.abs(d).toFixed(1)}pt</span>`; }
+    const d = a/b-1; return `<span class="${d>=0?'up':'down'}">${d>=0?'▲':'▼'} ${Math.abs(d*100).toFixed(1)}%</span>`;
+  };
+  const tiles = [
+    ["総売上", yen(cur.sales), delta(cur.sales, prv.sales)],
+    ["客数", fmt(cur.cust)+"人", delta(cur.cust, prv.cust)],
+    ["客単価", yen(cur.unit), delta(cur.unit, prv.unit)],
+    ["新規比率", pct(cur.newRate), delta(cur.newRate, prv.newRate, true)],
+    ["物販率", pct(cur.prodRate), delta(cur.prodRate, prv.prodRate, true)]
+  ];
+  $("tiles").innerHTML = tiles.map(t => `<div class="tile"><div class="t">${t[0]}</div><div class="n">${t[1]}</div><div class="d">${t[2]}</div></div>`).join("");
+
+  /* Time-series */
+  const B = buckets(R);
+  const labels = B.map(b=>b.label);
+  const perBucket = s => B.map(b => agg(filterRecs(b.from, b.to, s)));
+  const aggB = perBucket(sl);
+  const tgtB = B.map((b,i) => {
+    if (!can("target")) return null;
+    const t = targetFor(b.month, sl); if(!t) return null;
+    return { sales: state.gran==="day" ? (aggB[i].days ? t.sales/t.days : null) : t.sales, unit:t.unit };
+  });
+  const hasTgt = tgtB.some(x=>x);
+
+  let ds = [], lg = [];
+  if (sc==="total"){
+    STAFF.forEach(s => { const a = perBucket([s]); ds.push(barDS(nm(s), a.map(x=>x.days?x.sales:null), staffColor(s), true)); lg.push({label:nm(s), color:staffColor(s)}); });
+  } else { ds.push(barDS("売上", aggB.map(x=>x.days?x.sales:null), staffColor(sc), false)); lg.push({label:"売上", color:staffColor(sc)}); }
+  if (hasTgt){ const l = state.gran==="day"?"1日あたり目標":"月間目標"; ds.push(targetDS(l, tgtB.map(t=>t?t.sales:null))); lg.push({label:l, line:true}); }
+  $("lgSales").innerHTML = legendHTML(lg);
+  const oS = baseOpts(yenShort); oS.scales.x.stacked = sc==="total"; oS.scales.y.stacked = sc==="total";
+  oS.plugins.tooltip.callbacks.footer = items => { if (sc!=="total") return ""; const s = items.filter(i=>i.dataset.type==="bar").reduce((a,i)=>a+(i.parsed.y||0),0); return "合計："+yen(s); };
+  mkChart("chSales", { type:"bar", data:{ labels, datasets: ds }, options:oS });
+
+  const uColor = sc==="total" ? C[0] : staffColor(sc);
+  ds = [ barDS("客単価", aggB.map(x=>x.cust?Math.round(x.unit):null), uColor, false) ]; lg=[{label:"客単価", color:uColor}];
+  if (hasTgt){ ds.push(targetDS("客単価目標", tgtB.map(t=>t?Math.round(t.unit):null))); lg.push({label:"客単価目標", line:true}); }
+  $("lgUnit").innerHTML = legendHTML(lg);
+  mkChart("chUnit", { type:"bar", data:{ labels, datasets: ds }, options:baseOpts(yenShort) });
+
+  const cnt = v => fmt(v)+"人";
+  ds = [ barDS("再来", aggB.map(x=>x.days?x.cust-x.newc:null), C[0], true), barDS("新規", aggB.map(x=>x.days?x.newc:null), C[2], true) ];
+  $("lgCust").innerHTML = legendHTML([{label:"再来",color:C[0]},{label:"新規",color:C[2]}]);
+  const oC = baseOpts((v,axis)=>axis?fmt(v):cnt(v)); oC.scales.x.stacked=true; oC.scales.y.stacked=true;
+  oC.plugins.tooltip.callbacks.footer = items => { const t = items.reduce((a,i)=>a+(i.parsed.y||0),0); const n = items.find(i=>i.dataset.label==="新規"); return t ? "客数 "+t+"人／新規比率 "+pct((n?n.parsed.y:0)/t) : ""; };
+  mkChart("chCust", { type:"bar", data:{ labels, datasets: ds }, options:oC });
+
+  /* 円グラフ */
+  const pie = (id, lgId, items, unit) => {
+    const total = items.reduce((a,i)=>a+i.v,0);
+    mkChart(id, { type:"doughnut", data:{ labels: items.map(i=>i.label), datasets:[{ data: items.map(i=>i.v), backgroundColor: items.map(i=>i.c), borderColor: css("--surface"), borderWidth:2, hoverOffset:4 }] },
+      options:{ responsive:true, maintainAspectRatio:false, cutout:"58%", animation:{duration:250}, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:css("--text"), titleColor:css("--bg"), bodyColor:css("--bg"), callbacks:{ label: c => " "+c.label+"："+fmt(c.parsed)+unit+"（"+pct(total?c.parsed/total:0)+"）" } } } } });
+    $(lgId).innerHTML = items.map(i => `<div><i style="background:${i.c}"></i><span>${i.label}</span><b>${fmt(i.v)}</b><em>${pct(total?i.v/total:0,0)}</em></div>`).join("");
+  };
+  pie("pMenu","plMenu", MENU.map((m,i)=>({ label:m.label, v:cur[m.k], c:C[i] })), "人");
+  pie("pColor","plColor", [ {label:"通常カラー", v:Math.max(0,cur.color-cur.bleach-cur.wcolor), c:C[0]}, {label:"ブリーチ", v:cur.bleach, c:C[1]}, {label:"ダブルカラー", v:cur.wcolor, c:C[2]} ], "人");
+  pie("pNew","plNew", [ {label:"再来", v:cur.cust-cur.newc, c:C[0]}, {label:"新規", v:cur.newc, c:C[2]} ], "人");
+
+  /* 施術率（月ごと） */
+  const months = []; { let m = monthStart(R.from); while (m<=R.to){ months.push(m); m=addMonths(m,1); } }
+  while (months.length<3) months.unshift(addMonths(months[0],-1));
+  const mAgg = months.map(m => agg(filterRecs(m, monthEnd(m)>TODAY?TODAY:monthEnd(m), sl)));
+  const rateSeries = [ ["カラー率","color",C[0]], ["TR付帯率","tr",C[1]], ["ブリーチ率","bleach",C[2]] ];
+  ds = rateSeries.map(([l,k,c]) => ({ ...barDS(l, mAgg.map(a=>a.cust? +(a[k]/a.cust*100).toFixed(1) : null), c, false), maxBarThickness:22 }));
+  $("lgRate").innerHTML = legendHTML(rateSeries.map(([l,,c])=>({label:l,color:c})));
+  const oR = baseOpts((v,axis)=> axis ? v+"%" : v.toFixed(1)+"%"); oR.scales.y.max = 100;
+  mkChart("chRate", { type:"bar", data:{ labels: months.map(m=>(+m.slice(5,7))+"月"), datasets: ds }, options:oR });
+
+  /* 物販ランキング */
+  const items = Object.entries(cur.items).sort((a,b)=>b[1].amount-a[1].amount);
+  const maxAmt = items.length ? items[0][1].amount : 1;
+  $("tblProd").innerHTML = items.length
+    ? `<tr><th>商品名</th><th>個数</th><th>売上</th><th>構成比</th></tr>` + items.map(([n,x],i) => `<tr><td class="pn">${i+1}. ${esc(n)}</td><td>${fmt(x.qty)}個</td><td><span class="inbar" style="width:${Math.max(4, x.amount/maxAmt*48)}px"></span>${yen(x.amount)}</td><td>${pct(cur.prodSales?x.amount/cur.prodSales:0)}</td></tr>`).join("")
+      + `<tr style="font-weight:700"><td>合計</td><td>${fmt(cur.prodQty)}個</td><td>${yen(cur.prodSales)}</td><td>売上の${pct(cur.prodRate)}</td></tr>`
+    : `<tr><td class="muted">この期間の物販はありません</td></tr>`;
+
+  /* メニュー集計表 */
+  const mrows = [ ["カラー","color",false], ["└ ブリーチ","bleach",true], ["└ ダブルカラー","wcolor",true], ...MENU.slice(1).map(m=>[m.label,m.k,false]), ["新規","newc",false] ];
+  $("tblMenu").innerHTML = `<tr><th>メニュー</th><th>人数</th><th>施術率</th><th>前期</th><th>前期比</th></tr>` +
+    mrows.map(([l,k,sub]) => { const r = cur.cust?cur[k]/cur.cust:0, pr = prv.cust?prv[k]/prv.cust:0;
+      return `<tr><td${sub?' style="color:var(--text-2);padding-left:14px"':''}>${l}</td><td>${fmt(cur[k])}人</td><td>${pct(r)}</td><td class="muted">${pct(pr)}</td><td>${delta(r,pr,true)}</td></tr>`; }).join("");
+  $("prevNote").textContent = `集計期間：${fmtRange(R)}（${cur.days}営業日）／前期＝${P.label}（${fmtRange(P)}）`;
+}
+
+/* ---------------- 目標 ---------------- */
+function renderTarget(){
+  const locked = !can("target");
+  $("tgtLocked").hidden = !locked; $("tgtBody").hidden = locked;
+  if (locked) return;
+  const ro = state.role!=="admin";
+  $("tgtRO").hidden = !ro; $("tgtSave").hidden = ro;
+  const m = $("tgtMonth").value;
+  if (!state.targets[m]) state.targets[m] = { s1:{}, s2:{} };
+  const T = state.targets[m];
+  const list = ro ? (can("other") ? STAFF : [state.role]) : STAFF;
+  const f = (s,k,lbl,unit) => `<div class="field"><label>${lbl}</label><span><input type="text" inputmode="numeric" data-s="${s}" data-k="${k}" value="${T[s][k]!=null&&T[s][k]!==''?fmt(T[s][k]):''}" ${ro?'disabled':''}> <span class="hint">${unit}</span></span></div>`;
+  $("tgtGrid").innerHTML = list.map(s => `<div class="card"><h3><span class="dot" style="background:${staffColor(s)}"></span>${nm(s)}</h3>
+    ${f(s,"sales","売上目標","円")}${f(s,"cust","客数目標","人")}${f(s,"unit","客単価目標","円")}${f(s,"days","営業日数","日")}
+    <div class="opt">─ 任意 ─</div>${f(s,"newc","新規目標","人")}${f(s,"colorRate","カラー率目標","%")}${f(s,"trRate","TR付帯率目標","%")}
+    <div class="check" id="chk_${s}"></div></div>`).join("");
+  $("tgtGrid").querySelectorAll("input").forEach(el => {
+    el.addEventListener("input", () => { const v = String(el.value).trim()==="" ? "" : num(el.value); T[el.dataset.s][el.dataset.k] = v; updTgtCheck(m); });
+    el.addEventListener("blur", () => { if (el.value!=="") el.value = fmt(num(el.value)); });
+  });
+  updTgtCheck(m);
+}
+function updTgtCheck(m){
+  const T = state.targets[m];
+  STAFF.forEach(s => { const el = $("chk_"+s); if (!el) return; const t=T[s];
+    if (t.sales && t.cust && t.unit){ const calc = t.cust*t.unit, diff = calc - t.sales;
+      el.innerHTML = Math.abs(diff) <= t.sales*0.01 ? `✅ 客数 × 客単価 ＝ ${yen(calc)}（売上目標と一致）` : `⚠️ 客数 × 客単価 ＝ ${yen(calc)}（売上目標と ${diff>0?"+":""}${yen(diff)} ずれ）`;
+    } else el.textContent = "売上・客数・客単価を入れると整合性をチェックします"; });
+  const showTotal = STAFF.length > 1;
+  $("tgtTotal").hidden = !showTotal;
+  if (showTotal){
+    const tt = targetFor(m, STAFF) || {sales:0,cust:0,unit:0,newc:0};
+    $("tgtTotal").innerHTML = `<h3>サロン合計（自動計算）</h3>
+      <div class="sum-line"><span>売上目標</span><b>${yen(tt.sales)}</b></div>
+      <div class="sum-line"><span>客数目標</span><b>${fmt(tt.cust)}人</b></div>
+      <div class="sum-line"><span>客単価目標</span><b>${yen(tt.unit)}</b></div>
+      <div class="sum-line"><span>新規目標</span><b>${fmt(tt.newc)}人</b></div>`;
+  }
+}
+
+/* ---------------- 設定 ---------------- */
+function renderMaster(){
+  $("masterList").innerHTML = state.products.map((p,i) => `<div class="mrow"><input class="mn" data-i="${i}" value="${esc(p.name)}" aria-label="商品名"><input class="mp" data-i="${i}" inputmode="numeric" value="${fmt(p.price)}" aria-label="単価"><span class="hint">円</span><button data-i="${i}" aria-label="削除">×</button></div>`).join("") || `<div class="empty">登録された商品はありません</div>`;
+  $("masterList").querySelectorAll(".mn").forEach(el => el.oninput = () => { state.products[el.dataset.i].name = el.value; refreshDatalist(); });
+  $("masterList").querySelectorAll(".mp").forEach(el => { el.oninput = () => { state.products[el.dataset.i].price = num(el.value); }; el.onblur = () => { el.value = fmt(num(el.value)); }; });
+  $("masterList").querySelectorAll("button").forEach(b => b.onclick = () => { state.products.splice(+b.dataset.i,1); renderMaster(); refreshDatalist(); });
+}
+function renderSettings(){
+  $("setSalon").value = state.salon; $("setN1").value = state.names.s1;  $("setMail").value = state.mails;
+  renderMaster();
+  document.querySelectorAll("#p-set .toggle input").forEach(el => el.onchange = () => { state.perm[el.dataset.s][el.dataset.k] = el.checked; toast("保存しました"); });
+}
+
+/* ---------------- 画面全体 ---------------- */
+function applyRole(){
+  const isAdmin = state.role==="admin";
+  $("brand").textContent = state.salon;
+  $("who").textContent = nm("s1");
+  document.querySelector('[data-tab="p-set"]').hidden = !isAdmin;
+  document.querySelector('[data-tab="p-dash"]').hidden = !can("dash");
+  document.querySelector('[data-tab="p-target"]').hidden = !can("target");
+  $("inStaffWrap").style.display = "none";
+  const keep = $("inStaff").value;
+  $("inStaff").innerHTML = STAFF.map(s=>`<option value="${s}">${esc(nm(s))}</option>`).join("");
+  if (keep) $("inStaff").value = keep;
+  if ($("detail").classList.contains("on")) closeDetail();
+  const tabBtn = document.querySelector(`[data-tab="${state.tab}"]`);
+  if (!tabBtn || tabBtn.hidden) state.tab = "p-input";
+  showTab(state.tab);
+  loadForm();
+}
+function showTab(id){
+  state.tab = id;
+  document.querySelectorAll("section.page").forEach(p => p.classList.toggle("on", p.id===id));
+  document.querySelectorAll("nav.tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab===id));
+  window.scrollTo(0,0);
+  if (id==="p-dash") renderMain();
+  if (id==="p-target") renderTarget();
+  if (id==="p-set") renderSettings();
+}
+
+function init(){
+  genSample();
+  buildForm();
+  refreshDatalist();
+  $("inDate").value = TODAY; $("inDate").max = TODAY;
+  $("tgtMonth").innerHTML = Object.keys(state.targets).sort().reverse().map(m=>`<option value="${m}" ${m===TODAY.slice(0,7)?"selected":""}>${m.slice(0,4)}年${+m.slice(5)}月</option>`).join("");
+
+  document.querySelectorAll("nav.tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+  $("inDate").onchange = loadForm; $("inStaff").onchange = loadForm;
+  $("submitBtn").onclick = submit;
+  $("mailClose").onclick = () => $("mailModal").classList.remove("on");
+  $("dClose").onclick = closeDetail;
+  document.addEventListener("keydown", e => { if (e.key==="Escape" && $("detail").classList.contains("on")) closeDetail(); });
+  $("tgtMonth").onchange = renderTarget;
+  $("tgtSave").onclick = () => toast("目標を保存しました");
+  $("addMaster").onclick = () => { state.products.push({ name:"", price:0 }); renderMaster(); const ins = $("masterList").querySelectorAll(".mn"); ins[ins.length-1].focus(); };
+  $("setSalon").oninput = e => { state.salon = e.target.value; $("brand").textContent = state.salon; };
+  $("setN1").oninput = e => { state.names.s1 = e.target.value; };
+  $("setN1").onchange = () => { applyRole(); showTab("p-set"); };
+  $("setMail").oninput = e => { state.mails = e.target.value; };
+  if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if ($("detail").classList.contains("on")) renderDetail(); else if (state.tab==="p-dash") renderMain(); });
+
+  applyRole();
+}
+init();
+})();
+</script>
+</body>
+</html>
